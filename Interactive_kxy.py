@@ -35,7 +35,7 @@ class Conductivity():
     all the analysis functions for both probes.
     """
 
-    def __init__(self, data_file, w=1e-6, t=1e-6, L=1e-6, sign=1,raw_data=True):
+    def __init__(self, data_file, w=1e-6, t=1e-6, L=1e-6, sign=1, raw_data=True):
         """
         Used to initialize the object
 
@@ -72,7 +72,7 @@ class Conductivity():
                     if i > 5:
                         break
                     else:
-                        j = line.strip().split(" ")
+                        j = line.strip().split(" ")[0].split("\t")
                         if j[1] == "w":
                             self.w = float(j[-1])
                         elif j[1] == "t":
@@ -81,7 +81,7 @@ class Conductivity():
                             self.L = float(j[-1])
                         elif j[1] == "H":
                             self.H = float(j[-1])
-                            self.H_str = "%.1fT"%self.H
+                            self.H_str = "%.1fT" % self.H
                         elif j[1] == "Sample":
                             self.sample = j[-1]
             self.data = None
@@ -200,7 +200,7 @@ class Conductivity():
                 T_plus = T_minus+dTx
                 T_av = T_minus+dTx/2
             S = seebeck_thermometry(T_av)
-            dTy = (self.data[4]-self.data[3])/S/1000
+            dTy = self.sign*(self.data[4]-self.data[3])/S/1000
 
         elif self.probe == "Tallahassee":
             # Polynomial fit over Heat-off resistances
@@ -220,10 +220,11 @@ class Conductivity():
             T_minus = np.exp(npp.polyval(np.log(data[6]), coeff_minus))
             dTx = T_plus-T_minus
             T_av = 0.5*(T_plus+T_minus)
-            dTy = (data[8]-data[7])/1000/seebeck_thermometry((T_av+T0)/2)
+            S = seebeck_thermometry((T_av+T0)/2)
+            dTy = self.sign*(data[8]-data[7])/1000/S
 
         kxx = Q/dTx/alpha
-        kxy = self.sign*kxx*dTy/dTx*self.L/self.w
+        kxy = kxx*dTy/dTx*self.L/self.w
 
         data_out = np.array([T_av, T0, T_plus, T_minus, dTx, kxx, dTy, kxy])
         self.data_out = data_out
@@ -244,9 +245,9 @@ class Conductivity():
                 filename = ".".join(filename)
 
         w, t, L = self.w, self.t, self.L
-        alpha_str = "w = %1.3e\nt = %1.3e\nL = %1.3e\n" % (w, t, L)
-        sample_str = "Sample : %s\n" % self.sample
-        H_str = "H = %.2f\n"%self.H
+        alpha_str = "w\t=\t%1.3e\nt\t=\t%1.3e\nL\t=\t%1.3e\n" % (w, t, L)
+        sample_str = "Sample\t:\t%s\n" % self.sample
+        H_str = "H\t=\t%.2f\n" % self.H
         columns = ["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
                    "dTx(K)", "kxx(W/Km)", "dTy(K)", "kxy(W/Km)"]
 
@@ -284,7 +285,8 @@ class Conductivity():
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel(r"$\kappa_{xy}$ (mW/Km)", fontsize=16)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
@@ -315,7 +317,8 @@ class Conductivity():
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel(r"$\Delta T_y$ (mK)", fontsize=16)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
@@ -346,7 +349,8 @@ class Conductivity():
         ax.set_xlabel("T(K)", fontsize=16)
         ax.set_ylabel(r"$\kappa_{xx}$ (W/Km)", fontsize=16)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
@@ -377,14 +381,14 @@ class Conductivity():
         ax.set_xlabel("T(K)", fontsize=16)
         ax.set_ylabel(r"$\kappa_{xx}/T$ (mW/K$^2$cm)", fontsize=16)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
         elif show == False:
             plt.close()
         return fig, ax
-
 
     def DTx(self, show=None):
         """
@@ -409,7 +413,8 @@ class Conductivity():
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel(r"$\Delta T_x$ (K)", fontsize=16)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
@@ -439,7 +444,8 @@ class Conductivity():
 
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel(r"$\Delta T_y/\Delta T_{x}$ (%)", fontsize=16)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
         ax.set_xlim(0)
 
         if show == True:
@@ -470,7 +476,8 @@ class Conductivity():
 
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel(r"$\kappa_{xy}/\kappa_{xx}$ (%)", fontsize=16)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
         ax.set_xlim(0)
 
         if show == True:
@@ -500,7 +507,8 @@ class Conductivity():
         ax.legend(fontsize=16)
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel("T (K)", fontsize=16)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
         ax.set_xlim(0)
 
         if show == True:
@@ -532,7 +540,8 @@ class Conductivity():
         ax.set_xlabel("T (K)", fontsize=16)
         ax.set_ylabel(r"$\Delta T_x/T_{avg}$ (%)", fontsize=16)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
@@ -562,7 +571,8 @@ class Conductivity():
         ax.set_xlabel("T (K)", fontsize=16)
         ax.legend(frameon=False)
         ax.set_xlim(0)
-        plt.figtext(0.025, 0.025, self.sample+" at H="+self.H_str, fontsize=14)
+        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
+        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
 
         if show == True:
             plt.show()
@@ -596,8 +606,8 @@ class Conductivity():
                 directory = "/".join(filename.split("/")[0:-1])
 
                 # Creates a figure directory with the same structure as the data
-                # directory if the answer is yes, otherwise saves the pdf file with
-                # the data
+                # directory if the answer is yes, otherwise saves the pdf file
+                # with the data
                 if os.path.isdir(directory) is False:
                     answer = input(
                         "Do you want to create directory (Y/n): %s" % directory)
