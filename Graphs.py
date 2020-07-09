@@ -63,7 +63,7 @@ class Measurement():
     __dict_parameters["date"] = ["Date","date"]
 
     def __init__(self, filename=None, H=None, w=None, t=None,
-                 L=None, sample=None):
+                 L=None, sample=None,**kwargs):
         """
         Used to initialize a Measurement object
 
@@ -101,6 +101,10 @@ class Measurement():
         if sample is not None:
             setattr(self, "__sample", sample)
             self.parameters.append("sample")
+
+        for key,value in kwargs:
+            setattr(self,"__"+key, value)
+            self.parameters.append(key)
 
         if filename is not None:
             filename = os.path.abspath(filename)
