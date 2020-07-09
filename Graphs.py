@@ -29,7 +29,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 ################################################################################
 
 
-class Measurment():
+class Measurement():
     """
     This class is used to store the data from a single measurement in a standard
     format independantly of how to data file is structured.
@@ -47,6 +47,9 @@ class Measurment():
     __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
     __dict_measures["I"] = ["I(A)", "I (A)"]
     __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
+    __dict_measures["kxx/T"] = ["kxx/T"]
+    __dict_measures["Resistance"] = ["Resistance"]
+    __dict_measures["dTx/T"] = ["dTx/T"]
 
     # Creation of a dictionnary to sort other info
     __dict_parameters = dict()
@@ -54,6 +57,7 @@ class Measurment():
     __dict_parameters["w"] = ["w"]
     __dict_parameters["t"] = ["t"]
     __dict_parameters["L"] = ["L"]
+    __dict_parameters["Loc"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
     __dict_parameters["sample"] = ["Sample", "sample"]
 
     def __init__(self, filename=None, H=None, w=None, t=None,
@@ -77,19 +81,24 @@ class Measurment():
         self.parameters = []
         # Sets the values using the info provided
         if H is not None:
-            self.H = H
+            setattr(self, "__H", H)
+            self.parameters.append("H")
 
         if w is not None:
-            self.w = w
+            setattr(self, "__w", w)
+            self.parameters.append("w")
 
         if t is not None:
-            self.t = t
+            setattr(self, "__t", t)
+            self.parameters.append("t")
 
         if L is not None:
-            self.L = L
+            setattr(self, "__L", L)
+            self.parameters.append("L")
 
         if sample is not None:
-            self.sample = sample
+            setattr(self, "__sample", sample)
+            self.parameters.append("sample")
 
         if filename is not None:
             filename = os.path.abspath(filename)
@@ -133,15 +142,21 @@ class Measurment():
                                 self.measures.append(key)
                             else:
                                 pass
+                            if len(self.measures) == 0:
+                                raise Exception("No known measurements found")
+                            else:
+                                pass
 
             if hasattr(self, "__sample") is False:
-                self.__sample = "unknown"
+                setattr(self, "__sample", "unknown")
             else:
                 pass
             if hasattr(self, "__H") is False:
-                self.__H = "unknown"
+                setattr(self, "__H", "unknown")
             else:
                 pass
+
+        self.__add_measure()
 
         return
 
@@ -172,7 +187,7 @@ class Measurment():
         if type(key) is str:
             return getattr(self, "__"+key)
         else:
-            M = Measurment()
+            M = Measurement()
             for i in self.measures:
                 setattr(M, "__"+i, getattr(self, "__"+i)[key])
 
@@ -194,9 +209,310 @@ class Measurment():
         delattr(self, "__"+key)
         return
 
+    def __add_measure(self):
+        if "T_av" and "kxx" in self.measures:
+            self.measures.append("kxx/T")
+            self["kxx/T"] = self["kxx"]/self["T_av"]
+        else:
+            pass
+
+        if "T_av" and "dTx" in self.measures:
+            self.measures.append("dTx/T")
+            self["dTx/T"] = self["dTx"]/self["T_av"]
+        else:
+            pass
+
+        if "T_av" and "T0" and "dTx" in self.measures:
+            self.measures.append("Resistance")
+            self["Resistance"] = (self["T_av"]-self["T0"])/self["dTx"]
+        else:
+            pass
+
+        if "dTx" and "dTy" in self.measures:
+            self.measures.append("dTy/dTx")
+            self["dTy/dTx"] = self["dTy"]/self["dTx"]
+        else:
+            pass
+
+        if "kxx" and "kxy" in self.measures:
+            self.measures.append("kxy/kxx")
+            self["kxy/kxx"] = self["kxy"]/self["kxx"]
+        else:
+            pass
+
+        return
+
 
 class Data_Set():
     """
     This class contains multiple Measurement objects and is used to compare them
     which means they must possess common attributes.
     """
+
+    __list_measures = list()
+    __list_parameters = list()
+    __dict_axis = dict()
+    __dict_axis["T_av"] = r"T ( K )"
+    __dict_axis["T0"] = r"$T_0$ ( K )"
+    __dict_axis["Tp"] = __dict_axis["T_av"]
+    __dict_axis["Tm"] = __dict_axis["T_av"]
+    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
+    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
+    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
+    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x} ( % )"
+    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
+    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
+    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
+    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
+
+    __dict_labels = dict()
+    __dict_labels["H"] = r"H = %s T"
+    __dict_labels["sample"] = r"Sample: %s"
+
+    def __init__(self, measurements=None):
+        """
+        This class is meant to regroup multiple measurements to compare.
+
+        Parameters:
+        ------------------------------------------------------------------------
+
+        measurements:   Measurement instance or list of instances
+        """
+
+        if measurements is None:
+            measurements = []
+
+        elif isinstance(measurements, Measurement):
+            measurements = [measurements]
+
+        elif isinstance(measurements, list):
+            if len(measurements) == 0:
+                pass
+            else:
+                for i in measurements:
+                    if isinstance(i, Measurement) is False:
+                        raise TypeError(
+                            "All elements of the list must be "
+                            "Measurements objects")
+                    else:
+                        pass
+        else:
+            raise TypeError(
+                "Input must be None, a Measurement object "
+                "or a list of Measurements")
+
+        self.measurements = measurements
+        if len(measurements) != 0:
+            m = measurements[0]
+            self.__list_measures = list(m._Measurement__dict_measures.keys())
+            self.__list_parameters = list(
+                m._Measurement__dict_parameters.keys())
+        else:
+            pass
+
+        self.__find_measures()
+
+        return
+
+    def __add__(self, other):
+        data = Data_Set()
+
+        if isinstance(other, Data_Set) is True:
+            data.Add_measurements(self.measurements)
+            data.Add_measurements(other.measurements)
+        else:
+            raise TypeError("Can only add Data_Set objects")
+        return data
+
+    def __repr__(self):
+        n = len(self.measurements)
+        s = "Data set containing %i Measurements" % (n)
+        return s
+
+    def __getitem__(self, key):
+        return self.measurements[key]
+
+    def __setitem__(self, key, value):
+        self.measurements[key] = value
+        return
+
+    def __delitem__(self, key):
+        del self.measurements[key]
+        return
+
+    def Add_measurements(self, measurements):
+        """
+        Used to add measurements to the object after it is initialized
+
+        Parameters:
+        ------------------------------------------------------------------------
+
+        measurements:   Measurement instance or list of instances
+        """
+
+        if measurements is None:
+            measurements = []
+
+        elif isinstance(measurements, Measurement):
+            measurements = [measurements]
+
+        elif isinstance(measurements, list):
+            if len(measurements) == 0:
+                pass
+            else:
+                for i in measurements:
+                    if isinstance(i, Measurement) is False:
+                        raise TypeError(
+                            "All elements of the list must be "
+                            "Measurements objects")
+                    else:
+                        pass
+        else:
+            raise TypeError(
+                "Input must be None, a Measurement object "
+                "or a list of Measurements")
+
+        self.measurements += measurements
+        if len(self.__list_measures) == 0:
+            m = measurements[0]
+            self.__list_measures = list(m._Measurement__dict_measures.keys())
+            self.__list_parameters = list(
+                m._Measurement__dict_parameters.keys())
+
+        self.__find_measures()
+
+        return
+
+    def __find_measures(self):
+        """
+        Finds common measures in all Measurement objects, also does it for
+        parameters
+        """
+
+        if hasattr(self, "measures") is False:
+            measures = self.__list_measures
+        else:
+            measures = self.measures
+
+        if hasattr(self, "parameters") is False:
+            parameters = self.__list_parameters
+        else:
+            parameters = self.parameters
+
+        if len(self.measurements) == 0:
+            pass
+        else:
+            remove = []
+            for m in self.measurements:
+                for i in measures:
+                    if i in m.measures:
+                        pass
+                    else:
+                        remove.append(i)
+            for i in remove:
+                if i in measures:
+                    measures.remove(i)
+                else:
+                    pass
+            self.measures = measures
+
+            remove = []
+            for m in self.measurements:
+                for i in parameters:
+                    if i in m.parameters:
+                        pass
+                    else:
+                        remove.append(i)
+            for i in remove:
+                if i in parameters:
+                    parameters.remove(i)
+                else:
+                    pass
+            self.parameters = parameters
+
+        return
+
+    def Plot(self, key, *args, **kwargs):
+        """
+        Plots data corresponding to key for all Measurement in Data_Set
+
+        kwargs are all passed to ax.plot from matplotlib except the following:
+        ------------------------------------------------------------------------
+        show :  Bool
+            Determines if the figure is shown ore closed defaults to True
+        x_axis : str
+            The key for the x-axis defaults to "T_av"
+        parameter : str
+            The key corresponding to the compared parameter defaults to "H"
+        """
+
+        # Looks for show as kwarg
+        try:
+            show = kwargs["show"]
+            if type(show) is not bool:
+                raise TypeError("show must be of type bool")
+            else:
+                kwargs.pop("show")
+        except KeyError:
+            show = True
+
+        # Looks for x_axis as kwarg
+        try:
+            x_axis = kwargs["x_axis"]
+            if x_axis not in self.measures:
+                raise ValueError("x_axis must be in self.measures")
+            else:
+                kwargs.pop("x_axis")
+        except KeyError:
+            x_axis = "T_av"
+
+        # Looks for parameter as kwarg
+        try:
+            parameter = kwargs["parameter"]
+            if parameter not in self.parameters:
+                raise ValueError("parameter must be in self.parameters")
+            else:
+                kwargs.pop("parameter")
+        except KeyError:
+            parameter = "H"
+
+        if key in self.measures is False:
+            raise ValueError("%s is not in self.measures") % (key)
+        else:
+            pass
+
+        # Tries to find sample name
+        if "sample" in self.parameters:
+            sample = self.measurements[0]["sample"]
+            for m in self.measurements:
+                if sample == m["sample"]:
+                    pass
+                else:
+                    sample = None
+                    break
+
+        fig, ax = plt.subplots()
+        zero_line = 0
+
+        # Draws the curves
+        for m in self.measurements:
+            ax.plot(m[x_axis], m[key], label=self.__dict_labels[parameter] % (
+                m[parameter]), *args, **kwargs)
+            if m[key].min()*m[key].max() < 0 and zero_line == 0:
+                ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
+                zero_line += 1
+            else:
+                pass
+
+        # If sample is the same for all measurements print it on the figure
+        plt.figtext(0.1, 0.025, sample, fontsize=14)
+
+        # Makes it pretty
+        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=16)
+        ax.set_ylabel(self.__dict_axis[key], fontsize=16)
+        ax.legend(fontsize=14)
+
+        if show is False:
+            plt.close()
+        else:
+            plt.show()
