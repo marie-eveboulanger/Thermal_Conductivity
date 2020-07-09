@@ -56,21 +56,22 @@ class Measurment():
     __dict_parameters["L"] = ["L"]
     __dict_parameters["sample"] = ["Sample", "sample"]
 
-    def __init__(self, filename=None, H=None, w=None, t=None, L=None, sample=None):
+    def __init__(self, filename=None, H=None, w=None, t=None,
+                 L=None, sample=None):
         """
         Used to initialize a Measurement object
 
         Parameters:
-            ------------------------------------------------------------------------
-            filename :  str
-            The path to the file containing the data to be read and stored.
-            Can be relative or absolute.
-            H, w, t, L :    int or float
-            The value of the magnetic field used during the experiment and
-            the geometric parameters of the sample.
-            sample_name :   str
-            The name of the sample.
-            """
+        ------------------------------------------------------------------------
+        filename :  str
+        The path to the file containing the data to be read and stored.
+        Can be relative or absolute.
+        H, w, t, L :    int or float
+        The value of the magnetic field used during the experiment and
+        the geometric parameters of the sample.
+        sample_name :   str
+        The name of the sample.
+        """
 
         self.measures = []
         self.parameters = []
@@ -107,7 +108,7 @@ class Measurment():
                     else:
                         lines.append(line.strip()[2:])
 
-            #Should contain all the comment lines without trailing \n and
+            # Should contain all the comment lines without trailing \n and
             #starting #
             self.lines = lines
 
@@ -118,7 +119,7 @@ class Measurment():
                     for key, values in self.__dict_parameters.items():
                         if l[0] in values:
                             if hasattr(self, key) is False:
-                                setattr(self, key, l[-1])
+                                setattr(self, "__"+key, l[-1])
                                 self.parameters.append(key)
                             else:
                                 pass
@@ -128,35 +129,35 @@ class Measurment():
                     for key, values in self.__dict_measures.items():
                         for i in range(len(l)):
                             if l[i].strip() in values:
-                                setattr(self, key, raw_data[i])
+                                setattr(self, "__"+key, raw_data[i])
                                 self.measures.append(key)
                             else:
                                 pass
 
-            if hasattr(self, "sample") is False:
-                self.sample = "unknown"
+            if hasattr(self, "__sample") is False:
+                self.__sample = "unknown"
             else:
                 pass
-            if hasattr(self, "H") is False:
-                self.H = "unknown"
+            if hasattr(self, "__H") is False:
+                self.__H = "unknown"
             else:
                 pass
 
         return
 
     def __repr__(self):
-        if self.H == "unknown":
-            if self.sample != "unknown":
-                string = "Measurement of %s at %s H" % (self.sample, self.H)
+        H = getattr(self, "__H")
+        S = getattr(self, "__sample")
+        if H == "unknown":
+            if S != "unknown":
+                string = "Measurement of %s at %s H" % (S, H)
             else:
-                string = "Measurement of %s sample at %s H" % (
-                    self.sample, self.H)
+                string = "Measurement of %s sample at %s H" % (S, H)
         else:
-            if self.sample != "unknown":
-                string = "Measurement of %s at H=%sT" % (self.sample, self.H)
+            if S != "unknown":
+                string = "Measurement of %s at H=%sT" % (S, H)
             else:
-                string = "Measurement of %s sample at %s H" % (
-                    self.sample, self.H)
+                string = "Measurement of %s sample at %s H" % (S, H)
 
         return string
 
@@ -164,19 +165,19 @@ class Measurment():
         """
         Returns the transposed raw data
         """
-        data = np.array([getattr(self,key) for key in self.measures])
+        data = np.array([getattr(self, "__"+key) for key in self.measures])
         return data
 
     def __getitem__(self, key):
         if type(key) is str:
-            return getattr(self,key)
+            return getattr(self, "__"+key)
         else:
             M = Measurment()
             for i in self.measures:
-                setattr(M,i,getattr(self,i)[key])
+                setattr(M, "__"+i, getattr(self, "__"+i)[key])
 
             for i in self.parameters:
-                setattr(M,i,getattr(self,i))
+                setattr(M, "__"+i, getattr(self, "__"+i))
 
             M["measures"] = self.measures
             M["parameters"] = self.parameters
@@ -184,14 +185,15 @@ class Measurment():
 
     def __setitem__(self, key, value):
         if type(key) is str:
-            setattr(self,key,value)
+            setattr(self, "__"+key, value)
         else:
             pass
         return
 
     def __delitem__(self, key):
-        delattr(self, key)
+        delattr(self, "__"+key)
         return
+
 
 class Data_Set():
     """
