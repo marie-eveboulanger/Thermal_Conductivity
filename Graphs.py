@@ -513,7 +513,13 @@ class Data_Set():
                     m[parameter]), *args, **kwargs)
         else:
             for m in self.measurements:
-                ax.plot(m[x_axis], m[key], label=self.__dict_labels[parameter] % (
+                x_data = m[x_axis]
+                if key in ["kxy","kxy/T"]:
+                    y_data = 10*m[key]
+                else:
+                    y_data = m[key]
+                label = self.__dict_labels[parameter]
+                ax.plot(m[x_axis], m[key], label=label % (
                     m[parameter]), *args, **kwargs)
                 if m[key].min()*m[key].max() < 0 and zero_line == 0:
                     ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
