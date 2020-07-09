@@ -279,6 +279,7 @@ class Data_Set():
     __dict_labels = dict()
     __dict_labels["H"] = r"H = %s T"
     __dict_labels["sample"] = r"Sample: %s"
+    __dict_labels["date"] = r"%s"
 
     def __init__(self, measurements=None):
         """
@@ -511,7 +512,10 @@ class Data_Set():
         # Draws the curves
         if key == "Tp_Tm":
             for m in self.measurements:
-                label = self.__dict_labels[parameter]
+                try:
+                    label = self.__dict_labels[parameter]
+                except KeyError:
+                    label = "%s"
                 ax.plot(m[x_axis], m["Tp"], label="T+ at "+label % (
                     m[parameter]), *args, **kwargs)
                 ax.plot(m[x_axis], m["Tm"], label="T- at "+label % (
@@ -523,7 +527,10 @@ class Data_Set():
                     y_data = 10*m[key]
                 else:
                     y_data = m[key]
-                label = self.__dict_labels[parameter]
+                try:
+                    label = self.__dict_labels[parameter]
+                except KeyError:
+                    label = "%s"
                 ax.plot(m[x_axis], m[key], label=label % (
                     m[parameter]), *args, **kwargs)
                 if m[key].min()*m[key].max() < 0 and zero_line == 0:
