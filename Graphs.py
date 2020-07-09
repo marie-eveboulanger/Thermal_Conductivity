@@ -60,6 +60,7 @@ class Measurement():
     __dict_parameters["L"] = ["L"]
     __dict_parameters["Loc"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
     __dict_parameters["sample"] = ["Sample", "sample"]
+    __dict_parameters["date"] = ["Date","date"]
 
     def __init__(self, filename=None, H=None, w=None, t=None,
                  L=None, sample=None):
@@ -514,7 +515,7 @@ class Data_Set():
         else:
             for m in self.measurements:
                 x_data = m[x_axis]
-                if key in ["kxy","kxy/T"]:
+                if key in ["kxy", "kxy/T"]:
                     y_data = 10*m[key]
                 else:
                     y_data = m[key]
