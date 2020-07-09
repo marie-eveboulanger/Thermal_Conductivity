@@ -102,7 +102,7 @@ class Measurement():
             setattr(self, "__sample", sample)
             self.parameters.append("sample")
 
-        for key,value in kwargs:
+        for key,value in kwargs.items():
             setattr(self,"__"+key, value)
             self.parameters.append(key)
 
