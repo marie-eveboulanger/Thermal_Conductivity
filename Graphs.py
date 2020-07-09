@@ -50,6 +50,7 @@ class Measurement():
     __dict_measures["kxx/T"] = ["kxx/T"]
     __dict_measures["Resistance"] = ["Resistance"]
     __dict_measures["dTx/T"] = ["dTx/T"]
+    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
 
     # Creation of a dictionnary to sort other info
     __dict_parameters = dict()
@@ -240,6 +241,10 @@ class Measurement():
         else:
             pass
 
+        if "Tp" and "Tm" in self.measures:
+            self.measures.append("Tp_Tm")
+            self["Tp_Tm"] = None
+
         return
 
 
@@ -264,6 +269,7 @@ class Data_Set():
     __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
     __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
     __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
+    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
 
     __dict_labels = dict()
     __dict_labels["H"] = r"H = %s T"
@@ -498,14 +504,22 @@ class Data_Set():
         zero_line = 0
 
         # Draws the curves
-        for m in self.measurements:
-            ax.plot(m[x_axis], m[key], label=self.__dict_labels[parameter] % (
-                m[parameter]), *args, **kwargs)
-            if m[key].min()*m[key].max() < 0 and zero_line == 0:
-                ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
-                zero_line += 1
-            else:
-                pass
+        if key == "Tp_Tm":
+            for m in self.measurements:
+                label = self.__dict_labels[parameter]
+                ax.plot(m[x_axis], m["Tp"], label="T+ at "+label % (
+                    m[parameter]), *args, **kwargs)
+                ax.plot(m[x_axis], m["Tm"], label="T- at "+label % (
+                    m[parameter]), *args, **kwargs)
+        else:
+            for m in self.measurements:
+                ax.plot(m[x_axis], m[key], label=self.__dict_labels[parameter] % (
+                    m[parameter]), *args, **kwargs)
+                if m[key].min()*m[key].max() < 0 and zero_line == 0:
+                    ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
+                    zero_line += 1
+                else:
+                    pass
 
         # If sample is the same for all measurements print it on the figure
         plt.figtext(0.1, 0.025, sample, fontsize=14)
@@ -528,7 +542,11 @@ class Data_Set():
         with the addition of filename to save the file.
         """
 
-        remove = ["T_av", "T0"]
+        remove = ["T_av", "T0", "Tp", "Tm"]
+        if len(self.measurements) > 1:
+            remove.append("Tp_Tm")
+        else:
+            pass
         measures = [i for i in self.measures if i not in remove]
         figures = []
 
