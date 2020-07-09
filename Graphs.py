@@ -259,7 +259,7 @@ class Data_Set():
     __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
     __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
     __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
-    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x} ( % )"
+    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
     __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
     __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
     __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
@@ -450,7 +450,10 @@ class Data_Set():
         try:
             show = kwargs["show"]
             if type(show) is not bool:
-                raise TypeError("show must be of type bool")
+                if show is not None:
+                    raise TypeError("show must be of type bool or None")
+                else:
+                    pass
             else:
                 kwargs.pop("show")
         except KeyError:
@@ -514,5 +517,37 @@ class Data_Set():
 
         if show is False:
             plt.close()
-        else:
+        elif show is True:
             plt.show()
+
+        return fig, ax
+
+    def Plot_all(self, *args, **kwargs):
+        """
+        Plots all non trivial measures, all the same kwargs as Data_Set.Plot
+        with the addition of filename to save the file.
+        """
+
+        remove = ["T_av", "T0"]
+        measures = [i for i in self.measures if i not in remove]
+        figures = []
+
+        try:
+            filename = kwargs["filename"]
+            kwargs.pop("filename")
+        except KeyError:
+            filename = None
+
+        for key in measures:
+            figures.append(self.Plot(key, *args, **kwargs)[0])
+
+        if filename is not None:
+            filename = os.path.abspath(filename)
+            pp = PdfPages(filename)
+            for i in figures:
+                pp.savefig(i)
+            pp.close()
+        else:
+            pass
+
+        return
