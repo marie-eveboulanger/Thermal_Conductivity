@@ -60,51 +60,39 @@ class Measurement():
     __dict_parameters["L"] = ["L"]
     __dict_parameters["Loc"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
     __dict_parameters["sample"] = ["Sample", "sample"]
-    __dict_parameters["date"] = ["Date","date"]
+    __dict_parameters["date"] = ["Date", "date"]
 
-    def __init__(self, filename=None, H=None, w=None, t=None,
-                 L=None, sample=None,**kwargs):
+    def __init__(self, filename=None, **kwargs):
         """
         Used to initialize a Measurement object
 
         Parameters:
         ------------------------------------------------------------------------
         filename :  str
-        The path to the file containing the data to be read and stored.
-        Can be relative or absolute.
+                The path to the file containing the data to be read and stored.
+                Can be relative or absolute.
+
+        Useful kwargs:
+        ------------------------------------------------------------------------
         H, w, t, L :    int or float
-        The value of the magnetic field used during the experiment and
-        the geometric parameters of the sample.
-        sample_name :   str
-        The name of the sample.
+                The value of the magnetic field used during the experiment and
+                the geometric parameters of the sample. Note that kwargs are
+                case sensitive and are used to populate the parameters attribute
+                of the object
+        sample :   str
+                The name of the sample.
         """
 
         self.measures = []
         self.parameters = []
         # Sets the values using the info provided
-        if H is not None:
-            setattr(self, "__H", H)
-            self.parameters.append("H")
-
-        if w is not None:
-            setattr(self, "__w", w)
-            self.parameters.append("w")
-
-        if t is not None:
-            setattr(self, "__t", t)
-            self.parameters.append("t")
-
-        if L is not None:
-            setattr(self, "__L", L)
-            self.parameters.append("L")
-
-        if sample is not None:
-            setattr(self, "__sample", sample)
-            self.parameters.append("sample")
-
-        for key,value in kwargs.items():
-            setattr(self,"__"+key, value)
+        for key, value in kwargs.items():
+            setattr(self, "__"+key, value)
             self.parameters.append(key)
+            try:
+                self.__dict_parameters[key]
+            except KeyError:
+                self.__dict_parameters[key] = [key]
 
         if filename is not None:
             filename = os.path.abspath(filename)
@@ -133,7 +121,7 @@ class Measurement():
                 if len(l) < 6:
                     for key, values in self.__dict_parameters.items():
                         if l[0] in values:
-                            if hasattr(self, key) is False:
+                            if hasattr(self, "__"+key) is False:
                                 setattr(self, "__"+key, l[-1])
                                 self.parameters.append(key)
                             else:
@@ -277,7 +265,7 @@ class Data_Set():
     __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
 
     __dict_labels = dict()
-    __dict_labels["H"] = r"H = %s T"
+    __dict_labels["H"] = r"H = %sT"
     __dict_labels["sample"] = r"Sample: %s"
     __dict_labels["date"] = r"%s"
 
@@ -483,13 +471,33 @@ class Data_Set():
 
         # Looks for parameter as kwarg
         try:
-            parameter = kwargs["parameter"]
-            if parameter not in self.parameters:
-                raise ValueError("parameter must be in self.parameters")
+            parameters = kwargs["parameters"]
+            if type(parameters) is not list:
+                if type(parameters) is str:
+                    parameters = [parameters]
+                else:
+                    raise TypeError("Parameter must be a string")
             else:
-                kwargs.pop("parameter")
+                pass
+            for parameter in parameters:
+                if parameter not in self.parameters:
+                    raise ValueError("parameter must be in self.parameters")
+                else:
+                    pass
+            kwargs.pop("parameters")
+
         except KeyError:
-            parameter = "H"
+            parameters = ["H"]
+
+        # Sets the label according to parameters
+        labels = []
+        for parameter in parameters:
+            try:
+                label = self.__dict_labels[parameter]
+            except KeyError:
+                label = "%s"
+            labels.append(label)
+        label = ", ".join(labels)
 
         if key in self.measures is False:
             raise ValueError("%s is not in self.measures") % (key)
@@ -512,27 +520,21 @@ class Data_Set():
         # Draws the curves
         if key == "Tp_Tm":
             for m in self.measurements:
-                try:
-                    label = self.__dict_labels[parameter]
-                except KeyError:
-                    label = "%s"
-                ax.plot(m[x_axis], m["Tp"], label="T+ at "+label % (
-                    m[parameter]), *args, **kwargs)
-                ax.plot(m[x_axis], m["Tm"], label="T- at "+label % (
-                    m[parameter]), *args, **kwargs)
+                p = [m[parameter] for parameter in parameters]
+                ax.plot(m[x_axis], m["Tp"], label="T+ "+label %
+                        tuple(p), *args, **kwargs)
+                ax.plot(m[x_axis], m["Tm"], label="T- "+label %
+                        tuple(p), *args, **kwargs)
         else:
             for m in self.measurements:
+                p = [m[parameter] for parameter in parameters]
                 x_data = m[x_axis]
                 if key in ["kxy", "kxy/T"]:
                     y_data = 10*m[key]
                 else:
                     y_data = m[key]
-                try:
-                    label = self.__dict_labels[parameter]
-                except KeyError:
-                    label = "%s"
-                ax.plot(m[x_axis], m[key], label=label % (
-                    m[parameter]), *args, **kwargs)
+                ax.plot(m[x_axis], m[key], label=label %
+                        tuple(p), *args, **kwargs)
                 if m[key].min()*m[key].max() < 0 and zero_line == 0:
                     ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
                     zero_line += 1
