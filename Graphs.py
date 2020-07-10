@@ -498,7 +498,15 @@ class Data_Set():
                 label = "%s"
             labels.append(label)
         label = ", ".join(labels)
+        label_size = len(label)
+        if label_size == 1:
+            label_font = 14
+        elif label_size == 2:
+            label_font = 12
+        elif label_size > 2:
+            label_font = 10
 
+        # Checks that key is a valid measurement
         if key in self.measures is False:
             raise ValueError("%s is not in self.measures") % (key)
         else:
@@ -516,6 +524,7 @@ class Data_Set():
 
         fig, ax = plt.subplots()
         zero_line = 0
+        y_axis = None
 
         # Draws the curves
         if key == "Tp_Tm":
@@ -538,8 +547,12 @@ class Data_Set():
                 if m[key].min()*m[key].max() < 0 and zero_line == 0:
                     ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
                     zero_line += 1
-                else:
-                    pass
+
+                elif m[key].min()*m[key].max() > 1 and zero_line == 0:
+                    if m[key].max() < 0:
+                        y_axis = "Negative"
+                    else:
+                        y_axis = "Positive"
 
         # If sample is the same for all measurements print it on the figure
         plt.figtext(0.1, 0.025, sample, fontsize=14)
@@ -547,7 +560,21 @@ class Data_Set():
         # Makes it pretty
         ax.set_xlabel(self.__dict_axis[x_axis], fontsize=16)
         ax.set_ylabel(self.__dict_axis[key], fontsize=16)
-        ax.legend(fontsize=14)
+        ax.legend(fontsize=label_font)
+
+        #Set axis to start at 0
+        if x_axis in ["T_av", "T0"]:
+            ax.set_xlim(0)
+        else:
+            pass
+
+        if y_axis is not None:
+            if y_axis is "Positive":
+                ax.set_ylim(0,ax.get_ylim()[1])
+            else:
+                ax.set_ylim(ax.get_ylim()[0],0)
+        else:
+            pass
 
         if show is False:
             plt.close()
