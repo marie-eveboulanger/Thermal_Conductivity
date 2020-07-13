@@ -35,6 +35,47 @@ class Conductivity():
     all the analysis functions for both probes.
     """
 
+    # Creation of a dictionnary to sort data
+    __dict_measures = dict()
+    __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
+    __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
+    __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
+    __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
+    __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
+    __dict_measures["kxy"] = ["kxy(W/mk)", "k_xy(W/Km)", "Kxy (W / K m)"]
+    __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
+    __dict_measures["I"] = ["I(A)", "I (A)"]
+    __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
+    __dict_measures["kxx/T"] = ["kxx/T"]
+    __dict_measures["Resistance"] = ["Resistance"]
+    __dict_measures["dTx/T"] = ["dTx/T"]
+    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
+
+    # Creation of a dictionnary to sort raw data
+    __dict_raw = dict()
+    __dict_raw["T0"] = ["T0(K)"]
+    __dict_raw["I"] = ["I(A)"]
+    __dict_raw["R+_0"] = ["R+_0(V)"]
+    __dict_raw["R+_Q"] = ["R+_Q(V)"]
+    __dict_raw["R-_0"] = ["R-_0(V)"]
+    __dict_raw["R-_Q"] = ["R-_Q(V)"]
+    __dict_raw["dTy_0"] = ["dTy_0(V)"]
+    __dict_raw["dTy_Q"] = ["dTy_Q(V)"]
+    __dict_raw["dTabs_0"] = ["Tabs_0(V)"]
+    __dict_raw["dTabs_Q"] = ["Tabs_Q(V)"]
+    __dict_raw["dTx_0"] = ["dTx_0(V)"]
+    __dict_raw["dTx_Q"] = ["dTx_Q(V)"]
+
+    # Creation of a dictionnary to sort other info
+    __dict_parameters = dict()
+    __dict_parameters["H"] = ["H"]
+    __dict_parameters["w"] = ["w"]
+    __dict_parameters["t"] = ["t"]
+    __dict_parameters["L"] = ["L"]
+    __dict_parameters["Loc"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
+    __dict_parameters["sample"] = ["Sample", "sample"]
+    __dict_parameters["date"] = ["Date", "date"]
+
     def __init__(self, data_file, w=1e-6, t=1e-6, L=1e-6, sign=1, raw_data=True):
         """
         Used to initialize the object
@@ -143,6 +184,79 @@ class Conductivity():
 
     def __call__(self):
         return
+
+    def __read_file(self, filename):
+        """
+        Used to read the file header and the data. Also detects the probe that
+        has been used for the measurement. Also detects if the data is raw or
+        already analyzed.
+        """
+
+        # Converting filename to an absolute path if it is relative
+        filename = os.path.abspath(filename)
+
+        # Reading all the lines in the header
+        lines = []
+        with open(filename) as f:
+            for i, line in enumerate(f):
+                l = line.split(" ")
+                if l[0] != "#":
+                    numbers = ["0", "1", "2", "3",
+                               "4", "5", "6", "7", "8", "9"]
+                    if l[0][0] in numbers:
+                        break
+                    else:
+                        lines.append(l[0].strip())
+                else:
+                    lines.append(line.strip()[2:])
+
+        # Makes sure there is a header
+        if len(lines) == 0:
+            raise Exception("No header detected, cannot analyze the data!")
+        else:
+            pass
+        # Detect probe or already treated data
+        for line in self.lines:
+            l = line.split("\t")
+            # Checks for comments shorter than the raw data header
+            if len(l) < 6:
+                for key, values in self.__dict_parameters.items():
+                    if l[0] in values:
+                        if hasattr(self, "__"+key) is False:
+                            setattr(self, "__"+key, l[-1])
+                            self.parameters.append(key)
+                        else:
+                            pass
+                    else:
+                        pass
+            else:
+                for key, values in self.__dict_raw.items():
+                    for i in range(len(l)):
+                        if l[i].strip() in values:
+                            setattr(self, "__"+key, raw_data[i])
+                            self.raw_data.append(key)
+                        else:
+                            pass
+                        if len(self.measures) == 0:
+                            check_treated = True
+                        else:
+                            check_treated = False
+
+                if check_treated is True:
+                    for key, values in self.__dict_measures.items():
+                        for i in range(len(l)):
+                            if l[i].strip() in values:
+                                setattr(self, "__"+key, raw_data[i])
+                                self.measures.append(key)
+                            else:
+                                pass
+                            if len(self.measures) == 0:
+                                raise Exception("No known measurements found")
+                            else:
+                                pass
+                else:
+                    pass
+
 
     def Symmetrize(self):
         """

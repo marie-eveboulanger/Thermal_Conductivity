@@ -240,13 +240,14 @@ class Measurement():
 
         return
 
-
 class Data_Set():
     """
     This class contains multiple Measurement objects and is used to compare them
     which means they must possess common attributes.
     """
 
+    # Creation of an internal dictionnary used to match measurements to their
+    # respective axis titles to make the figures prettier.
     __list_measures = list()
     __list_parameters = list()
     __dict_axis = dict()
@@ -264,6 +265,7 @@ class Data_Set():
     __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
     __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
 
+    # Same principle then before but for curve labels 
     __dict_labels = dict()
     __dict_labels["H"] = r"H = %sT"
     __dict_labels["sample"] = r"Sample: %s"
@@ -562,20 +564,18 @@ class Data_Set():
         ax.set_ylabel(self.__dict_axis[key], fontsize=16)
         ax.legend(fontsize=label_font)
 
-        #Set axis to start at 0
+        # Set axis to start at 0
         if x_axis in ["T_av", "T0"]:
             ax.set_xlim(0)
         else:
             pass
-
         if y_axis is not None:
-            if y_axis is "Positive":
-                ax.set_ylim(0,ax.get_ylim()[1])
+            if y_axis == "Positive":
+                ax.set_ylim(0, ax.get_ylim()[1])
             else:
-                ax.set_ylim(ax.get_ylim()[0],0)
+                ax.set_ylim(ax.get_ylim()[0], 0)
         else:
             pass
-
         if show is False:
             plt.close()
         elif show is True:
