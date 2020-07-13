@@ -209,6 +209,7 @@ class Conductivity():
         raw_data = []
         # Converting filename to an absolute path if it is relative
         filename = os.path.abspath(filename)
+        self["filename"] = filename
 
         # Extracting info from filename
         # Date
@@ -538,6 +539,30 @@ class Conductivity():
             pass
 
         return
+
+    def Write_out(self, filename=None):
+        """
+        Writes the treated data to a file
+        """
+        if filename is None:
+            filename = self["filename"].replace(".dat", "_treated.dat")
+        else:
+            pass
+
+        parameters1 = ["sample", "date", "mount", "H"]
+        parameters2 = ["w", "t", "L"]
+        measures = ["T_av", "T0", "Tp", "Tm", "dTx", "kxx", "dTy", "kxy"]
+        columns = "\t".join(["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
+                             "dTx(K)", "kxx(W/Km)", "dTy(K)", "kxy(W/Km)"])
+        comments1 = "\n".join(["%s\t=\t%s" % (i, self[i])
+                               for i in parameters1])
+        comments2 = "\n".join(["%s\t=\t%1.3e" % (i, self[i])
+                               for i in parameters2])
+        header = comments1+"\n"+comments2+"\n"+columns
+        data = np.array([self[i] for i in measures]).T
+
+        np.savetxt(filename, data, delimiter="\t",
+                   header=header, fmt="%.6e")
 
     def __getitem__(self, key):
         if type(key) is str:
