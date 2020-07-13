@@ -58,7 +58,7 @@ class Measurement():
     __dict_parameters["w"] = ["w"]
     __dict_parameters["t"] = ["t"]
     __dict_parameters["L"] = ["L"]
-    __dict_parameters["mount"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
+    __dict_parameters["mount"] = ["mount"]
     __dict_parameters["sample"] = ["Sample", "sample"]
     __dict_parameters["date"] = ["Date", "date"]
 
