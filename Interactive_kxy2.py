@@ -72,17 +72,19 @@ class Conductivity():
     __dict_parameters["w"] = ["w"]
     __dict_parameters["t"] = ["t"]
     __dict_parameters["L"] = ["L"]
-    __dict_parameters["Loc"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
+    __dict_parameters["mount"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
     __dict_parameters["sample"] = ["Sample", "sample"]
     __dict_parameters["date"] = ["Date", "date"]
 
-    def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6,sign=1):
+    def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1):
 
-        dict_geo = {"__w": w, "__t": t, "__L": L}
+        self.parameters = []
+        dict_geo = {"w": w, "t": t, "L": L}
         for key, value in dict_geo.items():
-            setattr(self,key,value)
+            setattr(self, "__"+key, value)
+            self.parameters.append(key)
 
-        if sign in [1,-1]:
+        if sign in [1, -1]:
             self.sign = sign
         else:
             raise ValueError("Sign must be 1 or -1")
@@ -130,12 +132,43 @@ class Conductivity():
             alpha = self["w"]*self["t"]/self["L"]
             self["kxx"] = 5000*(self["I"])**2/self["dTx"]/alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
-            if getattr(self, "__H") != "0.0":
+            if self["H"] != "0.0":
                 S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
                 self["dTy"] = self.sign*(self["dTy_Q"]-self["dTy_0"])/1000/S
                 self["kxy"] = self["kxx"]*self["dTy"] / \
                     self["dTx"]*self["L"]/self["w"]
                 self.measures += ["dTy", "kxy"]
+        # VTI
+        elif self["probe"] == "VTI":
+            Q = 5000*self["I"]**2
+            alpha = self["w"]*self["t"]/self["L"]
+            T_av = 0*Q
+            dT_abs = 0*Q
+            dTx = 0*Q
+            prev = T_av+1000
+            # Loop to converge towards actual temperatures
+            while abs(prev.sum()-T_av.sum()) > 1e-10:
+                prev = T_av
+                S1 = seebeck_thermometry((dT_abs/2+self["T0"]))
+                S2 = seebeck_thermometry(self["T0"]+dT_abs+dTx/2)
+                dT_abs = abs(self["dTabs_Q"]-self["dTabs_0"])/S1/1000
+                dTx = (self["dTx_Q"]-self["dTx_0"])/S2/1000
+                Tm = dT_abs+self["T0"]
+                Tp = Tm+dTx
+                T_av = Tm+dTx/2
+            self["T_av"] = T_av
+            self["Tp"] = Tp
+            self["Tm"] = Tm
+            self["dTx"] = dTx
+            self["kxx"] = Q/self["dTx"]/alpha
+            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+            if self["H"] != "0.0":
+                S = seebeck_thermometry(T_av)
+                self["dTy"] = self.sign*(self["dTy_Q"]-self["dTy_0"])/S/1000
+                self["kxy"] = self["kxx"]*self["dTy"] / \
+                    self["dTx"]*self["L"]/self["w"]
+                self.measures += ["dTy", "kxy"]
+
         return
 
     def __read_file(self, filename):
@@ -163,9 +196,14 @@ class Conductivity():
         parameters.append("H")
 
         # Sample name
-        sample = filename.split("/")[-1].split(".")[-2].split("-")[-4]
+        sample = list(filter(None, filename.split("/")[-1].split("-")))[-4]
         setattr(self, "__sample", sample)
         parameters.append("sample")
+
+        # Mount
+        mount = list(filter(None, filename.split("/")[-1].split("-")))[-5]
+        setattr(self, "__mount", mount)
+        parameters.append("mount")
 
         # Read the data
         if H == "0.0":
@@ -258,7 +296,7 @@ class Conductivity():
                     self.datatype = "Treated"
 
                 self.lines = lines
-                self.parameters = parameters
+                self.parameters += parameters
                 self.measures = measures
                 self.raw_data = raw_data
 
