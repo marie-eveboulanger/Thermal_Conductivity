@@ -53,7 +53,7 @@ class Conductivity():
 
     # Creation of a dictionnary to sort raw data
     __dict_raw = dict()
-    __dict_raw["T0"] = ["T0(K)"]
+    __dict_raw["T0"] = ["#T0(K)"]
     __dict_raw["I"] = ["I(A)"]
     __dict_raw["R+_0"] = ["R+_0(V)"]
     __dict_raw["R+_Q"] = ["R+_Q(V)"]
@@ -72,117 +72,134 @@ class Conductivity():
     __dict_parameters["w"] = ["w"]
     __dict_parameters["t"] = ["t"]
     __dict_parameters["L"] = ["L"]
-    __dict_parameters["Loc"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
+    __dict_parameters["mount"] = ["BOT", "TOP", "Bot", "Top", "bot", "top"]
     __dict_parameters["sample"] = ["Sample", "sample"]
     __dict_parameters["date"] = ["Date", "date"]
 
-    def __init__(self, data_file, w=1e-6, t=1e-6, L=1e-6, sign=1, raw_data=True):
-        """
-        Used to initialize the object
+    # Creation of an internal dictionnary used to match measurements to their
+    # respective axis titles to make the figures prettier.
+    __list_measures = list()
+    __list_parameters = list()
+    __dict_axis = dict()
+    __dict_axis["T_av"] = r"T ( K )"
+    __dict_axis["T0"] = r"$T_0$ ( K )"
+    __dict_axis["Tp"] = __dict_axis["T_av"]
+    __dict_axis["Tm"] = __dict_axis["T_av"]
+    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
+    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
+    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
+    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
+    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
+    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
+    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
+    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
+    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
+    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
 
-        Parameters:
-        -----------------------------
-        data_file:  string
-        The location of the file
-        Ex: /data/data_file.dat
-        Only one file has to be specified even for measurements
-        that include a magnetic field the code will find
-        the matching file at the inverse field on its own.
+    # Same principle then before but for curve labels
+    __dict_labels = dict()
+    __dict_labels["H"] = r"H = %sT"
+    __dict_labels["sample"] = r"Sample: %s"
+    __dict_labels["date"] = r"%s"
 
-        w:          float
-        t:          float
-        L:          float
+    def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
-        w,t,L are the dimensions of
-        the sample
+        self.parameters = []
+        dict_geo = {"w": w, "t": t, "L": L}
+        for key, value in dict_geo.items():
+            setattr(self, "__"+key, value)
+            self.parameters.append(key)
 
-        raw_data:   boolean
-        If raw_data is False the data_file should be
-        a file containing the analyzed data that is outputed
-        by the Write_data function or has the same structure.
-        """
-        data_file = os.path.abspath(data_file)
-        self.sign = sign
-        if raw_data == False:
-            self.w = 1e-6
-            self.t = 1e-6
-            self.L = 1e-6
-            self.data_out = np.genfromtxt(data_file, delimiter="\t").T
-            with open(data_file) as df:
-                for i, line in enumerate(df):
-                    if i > 5:
-                        break
-                    else:
-                        j = line.strip().split(" ")[0].split("\t")
-                        if j[1] == "w":
-                            self.w = float(j[-1])
-                        elif j[1] == "t":
-                            self.t = float(j[-1])
-                        elif j[1] == "L":
-                            self.L = float(j[-1])
-                        elif j[1] == "H":
-                            self.H = float(j[-1])
-                            self.H_str = "%.1fT" % self.H
-                        elif j[1] == "Sample":
-                            self.sample = j[-1]
-            self.data = None
-            self.data_file = None
-            return
+        for key, value in kwargs.items():
+            setattr(self, "__"+key, value)
+            self.parameters.append(key)
 
-        self.data = None
-        self.data_out = None
-        f = data_file.split("/")[-1]
-
-        # If -H file is given
-        if len(f.split("--")) == 2:
-            # Finding the matching file at +H
-            self.data_file_down = data_file
-            self.data_file_up = data_file.replace("--", "-")
-            self.data_file = None
-
-            # Extracting the H field value from the filename
-            self.H_str = (self.data_file_up.split("/"))[-1].split("-")[2]
-            self.H = float(self.H_str.split("T")[0])
-        # If +H file is given
+        if sign in [1, -1]:
+            self["sign"] = sign
         else:
-            # Extracting the H field value from the filename
-            self.H_str = (data_file.split("/"))[-1].split("-")[2]
-            self.H = float(self.H_str.split("T")[0])
-            if self.H == 0:
-                self.data_file_up = None
-                self.data_file_down = None
-                self.data_file = data_file
-            else:
-                self.data_file_up = data_file
-                self.data_file_down = data_file.replace("TS-", "TS--")
-                self.data_file = None
+            raise ValueError("Sign must be 1 or -1")
 
-        # Geometry
-        self.w = w
-        self.t = t
-        self.L = L
+        self.__read_file(filename)
 
-        # Sample name and probe detection
-        lines = []
-        with open(data_file) as df:
-            for i, line in enumerate(df):
-                if i > 2:
-                    break
-                else:
-                    lines.append(line)
-        self.sample = lines[0].strip().split(" ")[-1]
-        self.comments = lines[1]
-        if lines[2].split("\t")[3] == "R+_0(V)":
-            self.probe = "Tallahassee"
-        else:
-            self.probe = "VTI"
+        if getattr(self, "__H") != "0.0":
+            self.__symetrize()
+
+        self.__analyze()
+        self.__add_measure()
+
         return
 
-    def __repr__(self):
-        string = "Data for %s at H=%s" % (self.sample, self.H_str)
-        return string
+    def __symetrize(self):
+        sym = ["T0", "I", "R+_0", "R+_Q", "R-_0", "R-_Q",
+               "dTabs_0", "dTabs_Q", "dTx_0", "dTx_Q"]
+        anti_sym = ["dTy_0", "dTy_Q"]
 
-    def __call__(self):
+        for i in sym:
+            if i in self.raw_data:
+                self[i] = 0.5*(self[i][0]+self[i][1])
+            else:
+                pass
+        for i in anti_sym:
+            if i in self.raw_data:
+                self[i] = 0.5*(self[i][0]-self[i][1])
+            else:
+                pass
+        return
+
+    def __analyze(self):
+        # Probe Tallahasse
+        if self["probe"] == "Tallahasse":
+            # Polyfit of R+ and R-
+            Cp = npp.polyfit(np.log(self["R+_0"]), np.log(self["T0"]), 8)
+            Cm = npp.polyfit(np.log(self["R-_0"]), np.log(self["T0"]), 8)
+            index = np.where(self["R+_Q"] < self["R+_0"][-1])
+            for i in self.raw_data:
+                self[i] = np.delete(self[i], index)
+            # Compute useful stuff
+            self["Tp"] = np.exp(npp.polyval(np.log(self["R+_Q"]), Cp))
+            self["Tm"] = np.exp(npp.polyval(np.log(self["R-_Q"]), Cm))
+            self["dTx"] = self["Tp"]-self["Tm"]
+            self["T_av"] = 0.5*(self["Tp"]+self["Tm"])
+            alpha = self["w"]*self["t"]/self["L"]
+            self["kxx"] = 5000*(self["I"])**2/self["dTx"]/alpha
+            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+            if self["H"] != "0.0":
+                S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
+                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/1000/S
+                self["kxy"] = self["kxx"]*self["dTy"] / \
+                    self["dTx"]*self["L"]/self["w"]
+                self.measures += ["dTy", "kxy"]
+        # VTI
+        elif self["probe"] == "VTI":
+            Q = 5000*self["I"]**2
+            alpha = self["w"]*self["t"]/self["L"]
+            T_av = 0*Q
+            dT_abs = 0*Q
+            dTx = 0*Q
+            prev = T_av+1000
+            # Loop to converge towards actual temperatures
+            while abs(prev.sum()-T_av.sum()) > 1e-10:
+                prev = T_av
+                S1 = seebeck_thermometry((dT_abs/2+self["T0"]))
+                S2 = seebeck_thermometry(self["T0"]+dT_abs+dTx/2)
+                dT_abs = abs(self["dTabs_Q"]-self["dTabs_0"])/S1/1000
+                dTx = (self["dTx_Q"]-self["dTx_0"])/S2/1000
+                Tm = dT_abs+self["T0"]
+                Tp = Tm+dTx
+                T_av = Tm+dTx/2
+            self["T_av"] = T_av
+            self["Tp"] = Tp
+            self["Tm"] = Tm
+            self["dTx"] = dTx
+            self["kxx"] = Q/self["dTx"]/alpha
+            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+            if self["H"] != "0.0":
+                S = seebeck_thermometry(T_av)
+                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/S/1000
+                self["kxy"] = self["kxx"]*self["dTy"] / \
+                    self["dTx"]*self["L"]/self["w"]
+                self.measures += ["dTy", "kxy"]
+
         return
 
     def __read_file(self, filename):
@@ -191,12 +208,54 @@ class Conductivity():
         has been used for the measurement. Also detects if the data is raw or
         already analyzed.
         """
-
+        measures = []
+        parameters = []
+        raw_data = []
         # Converting filename to an absolute path if it is relative
         filename = os.path.abspath(filename)
+        self["filename"] = filename
+
+        # Extracting info from filename
+        # Date
+        date = "-".join(filename.split("/")[-1].split(".")[-2].split("-")[-3:])
+        setattr(self, "__date", date)
+        parameters.append("date")
+
+        # Magnetic field
+        f = filename.split("/")[-1].split(".")
+        H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
+        setattr(self, "__H", H)
+        parameters.append("H")
+
+        # Sample name
+        if hasattr(self, "__sample") is False:
+            sample = list(filter(None, filename.split("/")[-1].split("-")))[-4]
+            setattr(self, "__sample", sample)
+            parameters.append("sample")
+        else:
+            pass
+
+        # Mount
+        mount = list(filter(None, filename.split("/")[-1].split("-")))[-5]
+        setattr(self, "__mount", mount)
+        parameters.append("mount")
+
+        # Read the data
+        if H == "0.0":
+            data = np.genfromtxt(filename, delimiter="\t").T
+        else:
+            if len(filename.split("--")) == 1:
+                filename2 = filename.replace("TS-", "TS--")
+            else:
+                filename2 = filename
+                filename = filename2.replace("--", "-")
+
+            data = np.genfromtxt(filename, delimiter="\t").T
+            data2 = np.genfromtxt(filename2, delimiter="\t").T
 
         # Reading all the lines in the header
         lines = []
+
         with open(filename) as f:
             for i, line in enumerate(f):
                 l = line.split(" ")
@@ -216,15 +275,15 @@ class Conductivity():
         else:
             pass
         # Detect probe or already treated data
-        for line in self.lines:
-            l = line.split("\t")
+        for line in lines:
+            l = list(filter(None, line.split("\t")))
             # Checks for comments shorter than the raw data header
             if len(l) < 6:
                 for key, values in self.__dict_parameters.items():
                     if l[0] in values:
                         if hasattr(self, "__"+key) is False:
                             setattr(self, "__"+key, l[-1])
-                            self.parameters.append(key)
+                            parameters.append(key)
                         else:
                             pass
                     else:
@@ -233,490 +292,261 @@ class Conductivity():
                 for key, values in self.__dict_raw.items():
                     for i in range(len(l)):
                         if l[i].strip() in values:
-                            setattr(self, "__"+key, raw_data[i])
-                            self.raw_data.append(key)
+                            if H != "0.0":
+                                setattr(self, "__"+key, [data[i], data2[i]])
+                            else:
+                                setattr(self, "__"+key, data[i])
+                            raw_data.append(key)
                         else:
                             pass
-                        if len(self.measures) == 0:
+                        if len(raw_data) == 0:
                             check_treated = True
+                            self.__filetype = "treated"
                         else:
                             check_treated = False
+                            self.__filetype = "raw_data"
 
                 if check_treated is True:
                     for key, values in self.__dict_measures.items():
                         for i in range(len(l)):
                             if l[i].strip() in values:
-                                setattr(self, "__"+key, raw_data[i])
-                                self.measures.append(key)
+                                setattr(self, "__"+key, data[i])
+                                measures.append(key)
                             else:
                                 pass
-                            if len(self.measures) == 0:
+                            if len(measures) == 0:
                                 raise Exception("No known measurements found")
                             else:
                                 pass
                 else:
                     pass
 
-    def Symmetrize(self):
-        """
-        This function symmetrizes the data using data at
-        both H and -H
-        """
-        if self.data_file is not None:
-            raise Exception("H=0 no need to symmetrize the data")
-        else:
-            data_up = np.genfromtxt(self.data_file_up, delimiter="\t").T
-            data_down = np.genfromtxt(self.data_file_down, delimiter="\t").T
-            data = np.zeros(data_up.shape)
+                if self.__filetype == "raw_data":
+                    self.datatype = "Raw"
+                    if "dTabs_0" in raw_data:
+                        self["probe"] = "VTI"
+                    else:
+                        self["probe"] = "Tallahasse"
+                elif self.__filetype == "treated":
+                    self.datatype = "Treated"
 
-            if self.probe == "VTI":
-                sym = [0, 1, 2, 5, 6, 7, 8, 9, 10]
-                anti_sym = [3, 4]
-            elif self.probe == "Tallahassee":
-                sym = [0, 1, 2, 3, 4, 5, 6, 9, 10]
-                anti_sym = [7, 8]
+                self.lines = lines
+                self.parameters += parameters
+                self.measures = measures
+                self.raw_data = raw_data
 
-            data[sym] = 0.5*(data_up[sym]+data_down[sym])
-            data[anti_sym] = 0.5*(data_up[anti_sym]-data_down[anti_sym])
-            self.data = data
-            return
-
-    def Analyze(self):
-        """
-        This function annalyzes the data to return usefull
-        info like T_av and kxx etc
-        """
-        if self.data is None:
-            if self.H == 0:
-                self.data = np.genfromtxt(self.data_file, delimiter="\t").T
-            else:
-                print("Symetrizing the data")
-                self.Symmetrize()
-
-        alpha = self.w*self.t/self.L
-
-        if self.probe == "VTI":
-            T0 = self.data[0]
-            Q = 5000*self.data[2]**2
-            dT_abs = self.data[0]*0
-            dTx = self.data[0]*0
-            T_av = dT_abs*0
-            prev = dT_abs+1000
-            # Loop to converge towards actual temperatures
-            while abs(prev.sum()-T_av.sum()) > 1e-10:
-                prev = T_av
-                S1 = seebeck_thermometry((dT_abs/2+T0))
-                S2 = seebeck_thermometry(T0+dT_abs+dTx/2)
-                dT_abs = abs(self.data[6]-self.data[5])/S1/1000
-                dTx = (self.data[8]-self.data[7])/S2/1000
-                T_minus = dT_abs+T0
-                T_plus = T_minus+dTx
-                T_av = T_minus+dTx/2
-            S = seebeck_thermometry(T_av)
-            dTy = self.sign*(self.data[4]-self.data[3])/S/1000
-
-        elif self.probe == "Tallahassee":
-            # Polynomial fit over Heat-off resistances
-            coeff_plus = npp.polyfit(
-                np.log(self.data[3]), np.log(self.data[0]), 8)
-            coeff_minus = npp.polyfit(
-                np.log(self.data[5]), np.log(self.data[0]), 8)
-
-            # Determines which data points cannot be calibrated
-            index = np.where(self.data[4] < self.data[3][-1])
-            data = np.delete(self.data, index, axis=-1)
-
-            # Calculates Everything
-            T0 = data[0]
-            Q = 5000*data[2]**2
-            T_plus = np.exp(npp.polyval(np.log(data[4]), coeff_plus))
-            T_minus = np.exp(npp.polyval(np.log(data[6]), coeff_minus))
-            dTx = T_plus-T_minus
-            T_av = 0.5*(T_plus+T_minus)
-            S = seebeck_thermometry((T_av+T0)/2)
-            dTy = self.sign*(data[8]-data[7])/1000/S
-
-        kxx = Q/dTx/alpha
-        kxy = kxx*dTy/dTx*self.L/self.w
-
-        data_out = np.array([T_av, T0, T_plus, T_minus, dTx, kxx, dTy, kxy])
-        self.data_out = data_out
         return
 
-    def Write_data(self, filename=None):
-        """
-        Writes the analyzed data to a file
-        """
-        if filename is None:
-            if self.data_file is None:
-                filename = self.data_file_up.split(".")
-                filename[-2] += "_treated"
-                filename = ".".join(filename)
-            else:
-                filename = self.data_file.split(".")
-                filename[-2] += "_treated"
-                filename = ".".join(filename)
-
-        w, t, L = self.w, self.t, self.L
-        alpha_str = "w\t=\t%1.3e\nt\t=\t%1.3e\nL\t=\t%1.3e\n" % (w, t, L)
-        sample_str = "Sample\t:\t%s\n" % self.sample
-        H_str = "H\t=\t%.2f\n" % self.H
-        columns = ["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
-                   "dTx(K)", "kxx(W/Km)", "dTy(K)", "kxy(W/Km)"]
-
-        if self.H == 0:
-            data_out = self.data_out[0:6].T
-            header = sample_str+H_str+alpha_str+"\t".join(columns[0:6])
+    def __add_measure(self):
+        if "T_av" and "kxx" in self.measures:
+            self.measures.append("kxx/T")
+            self["kxx/T"] = self["kxx"]/self["T_av"]
         else:
-            data_out = self.data_out.T
-            header = sample_str+H_str+alpha_str+"\t".join(columns)
+            pass
 
-        np.savetxt(filename, data_out, delimiter="\t",
-                   header=header, fmt="%.6e")
+        if "T_av" and "dTx" in self.measures:
+            self.measures.append("dTx/T")
+            self["dTx/T"] = self["dTx"]/self["T_av"]
+        else:
+            pass
+
+        if "T_av" and "T0" and "dTx" in self.measures:
+            self.measures.append("Resistance")
+            self["Resistance"] = (self["T_av"]-self["T0"])/self["dTx"]
+        else:
+            pass
+
+        if "dTx" and "dTy" in self.measures:
+            self.measures.append("dTy/dTx")
+            self["dTy/dTx"] = self["dTy"]/self["dTx"]
+        else:
+            pass
+
+        if "kxx" and "kxy" in self.measures:
+            self.measures.append("kxy/kxx")
+            self["kxy/kxx"] = self["kxy"]/self["kxx"]
+        else:
+            pass
+
+        if "Tp" and "Tm" in self.measures:
+            self.measures.append("Tp_Tm")
+            self["Tp_Tm"] = None
+
         return
 
-    def Kxy(self, show=True):
+    def Plot(self, key, *args, **kwargs):
         """
-        Plots kxy versus T_av
+        Plots data corresponding to key.
+
+        kwargs are all passed to ax.plot from matplotlib except the following:
+        ------------------------------------------------------------------------
+        show :  Bool
+            Determines if the figure is shown ore closed defaults to True
+        x_axis : str
+            The key for the x-axis defaults to "T_av"
+        parameter : str
+            The key corresponding to the compared parameter defaults to "H"
         """
-        if self.data_out is None:
-            self.Analyze()
 
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, kxy = self.data_out[0], self.data_out[7]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, kxy*1000, "--o", c="green")
-
-        if kxy.min()*kxy.max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel(r"$\kappa_{xy}$ (mW/Km)", fontsize=16)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        else:
-            plt.close()
-        return fig, ax
-
-    def DTy(self, show=True):
-        """
-        Plots dTy versus T_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, dTy = self.data_out[0], self.data_out[6]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, dTy*1000, "--o", c="green")
-
-        if dTy.min()*dTy.max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel(r"$\Delta T_y$ (mK)", fontsize=16)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        else:
-            plt.close()
-        return fig, ax
-
-    def Kxx(self, show=None):
-        """
-        Plots kxx versus T_avg
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, kxx = self.data_out[0], self.data_out[5]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, kxx, "--o", c="blue")
-
-        if kxx.min()*kxx.max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T(K)", fontsize=16)
-        ax.set_ylabel(r"$\kappa_{xx}$ (W/Km)", fontsize=16)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def Kxx_over_T(self, show=None):
-        """
-        Plots kxx versus T_avg
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, kxx = self.data_out[0], self.data_out[5]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, 10*kxx/T_av, "--o", c="blue")
-
-        if kxx.min()*kxx.max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T(K)", fontsize=16)
-        ax.set_ylabel(r"$\kappa_{xx}/T$ (mW/K$^2$cm)", fontsize=16)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def DTx(self, show=None):
-        """
-        Plots dTx versus t_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, dTx = self.data_out[0], self.data_out[4]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, dTx, "--o", c="gray")
-
-        if dTx.min()*dTx.max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel(r"$\Delta T_x$ (K)", fontsize=16)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def DTy_over_DTx(self, show=None):
-        """
-        Plots Dty/Dtx*100 versus T_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, dTx, dTy = self.data_out[0], self.data_out[4], self.data_out[6]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, 100*dTy/dTx, '--o', c="grey")
-
-        if (dTy/dTx).min()*(dTy/dTx).max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel(r"$\Delta T_y/\Delta T_{x}$ (%)", fontsize=16)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-        ax.set_xlim(0)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def Kxy_over_Kxx(self, show=None):
-        """
-        Plots Dty/Dtx*100 versus T_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, kxx, kxy = self.data_out[0], self.data_out[5], self.data_out[7]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, 100*kxy/kxx, '--o', c="grey")
-
-        if (kxy/kxx).min()*(kxy/kxx).max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel(r"$\kappa_{xy}/\kappa_{xx}$ (%)", fontsize=16)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-        ax.set_xlim(0)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def Temperatures(self, show=None):
-        """
-        Plots T+ and T- versus T_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av = self.data_out[0]
-        T_plus, T_minus = self.data_out[2], self.data_out[3]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, T_plus, "--o", c="red", label=r"$T_+$")
-        ax.plot(T_av, T_minus, "--o", c="blue", label="$T_-$")
-        ax.legend(fontsize=16)
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel("T (K)", fontsize=16)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-        ax.set_xlim(0)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def DTx_over_T_av(self, show=None):
-        """
-        Plots dTx/T_av*100 versus T_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, dTx = self.data_out[0], self.data_out[4]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, dTx/T_av*100, '--o', c="grey")
-
-        if (dTx/T_av).min()*(dTx/T_av).max() < 0:
-            ax.axhline(0, ls="--", c="k", lw="0.75")
-
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.set_ylabel(r"$\Delta T_x/T_{avg}$ (%)", fontsize=16)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def Thermal_contact_resistance(self, show=None):
-        """
-        Plots the thermal contact resistance vs T_av
-        """
-        if self.data_out is None:
-            self.Analyze()
-
-        # rcParams to make sure graphs are beautiful
-        mp.rc("xtick", direction="in", top=True)
-        mp.rc("ytick", direction="in", right=True)
-        mp.rc("figure", figsize=(7, 4))
-
-        T_av, T0, dTx = self.data_out[0], self.data_out[1], self.data_out[4]
-
-        fig, ax = plt.subplots()
-        ax.plot(T_av, abs(T_av-T0)/dTx, '--o', c="grey")
-        ax.axhline(0.5, ls="--", c="r", lw="0.75",
-                   label="Ideal thermal contact resistance 1/2")
-        ax.set_ylabel(r"($T_{avg}-T_0$)/$\Delta T_x$", fontsize=16)
-        ax.set_xlabel("T (K)", fontsize=16)
-        ax.legend(frameon=False)
-        ax.set_xlim(0)
-        plt.figtext(0.1, 0.025, self.sample, fontsize=14)
-        plt.figtext(0.8, 0.025, "H="+self.H_str, fontsize=14)
-
-        if show == True:
-            plt.show()
-        elif show == False:
-            plt.close()
-        return fig, ax
-
-    def Plot_all(self, filename=None, save=True, show=False):
-        """
-        Plots all availlable figures and saves them in
-        a single pdf using matplotlib's PDF_Pages
-        Parameters:
-        ----------------------------------------------
-        filename:   string
-            Output file name and path default is the
-            same as data_file or data_file_up except
-            the directory /data/ will be swapped for
-            /figures/
-
-        show: Boolean
-            Determines if the figures are shown on screen
-        """
-        if save == True:
-            if filename is None:
-                # Pdf file
-                if self.data_file is None:
-                    filename = self.data_file_up.replace("/data/", "/figures/")
+        # Looks for show as kwarg
+        try:
+            show = kwargs["show"]
+            if type(show) is not bool:
+                if show is not None:
+                    raise TypeError("show must be of type bool or None")
                 else:
-                    filename = self.data_file.replace("/data/", "/figures/")
-                filename = filename.replace(".dat", ".pdf")
+                    pass
+            else:
+                kwargs.pop("show")
+        except KeyError:
+            show = True
+
+        # Looks for x_axis as kwarg
+        try:
+            x_axis = kwargs["x_axis"]
+            if x_axis not in self.measures:
+                raise ValueError("x_axis must be in self.measures")
+            else:
+                kwargs.pop("x_axis")
+        except KeyError:
+            x_axis = "T_av"
+
+        # Looks for parameter as kwarg
+        try:
+            parameters = kwargs["parameters"]
+            if type(parameters) is not list:
+                if type(parameters) is str:
+                    parameters = [parameters]
+                else:
+                    raise TypeError("Parameter must be a string")
+            else:
+                pass
+            for parameter in parameters:
+                if parameter not in self.parameters:
+                    raise ValueError("parameter must be in self.parameters")
+                else:
+                    pass
+            kwargs.pop("parameters")
+
+        except KeyError:
+            parameters = []
+
+        # Sets the label according to parameters
+        labels = []
+        for parameter in parameters:
+            try:
+                label = self.__dict_labels[parameter]
+            except KeyError:
+                label = "%s"
+            labels.append(label)
+        label = ", ".join(labels)
+        label_size = len(label)
+        if label_size < 2:
+            label_font = 14
+        elif label_size == 2:
+            label_font = 12
+        elif label_size > 2:
+            label_font = 10
+
+        # Checks that key is a valid measurement
+        if key in self.measures is False:
+            raise ValueError("%s is not in self.measures") % (key)
+        else:
+            pass
+
+        # Tries to find sample name
+        if "sample" in self.parameters:
+            sample = self["sample"]
+        else:
+            pass
+
+        fig, ax = plt.subplots()
+        zero_line = 0
+        y_axis = None
+
+        # Draws the curves
+        if key == "Tp_Tm":
+            p = [self[parameter] for parameter in parameters]
+            ax.plot(self[x_axis], self["Tp"], label=r"T$^+$ "+label %
+                    tuple(p), *args, **kwargs)
+            ax.plot(self[x_axis], self["Tm"], label=r"T$^-$ "+label %
+                    tuple(p), *args, **kwargs)
+            ax.legend(fontsize=label_font)
+        else:
+            p = [self[parameter] for parameter in parameters]
+            x_data = self[x_axis]
+            if key in ["kxy", "kxy/T"]:
+                y_data = 10*self[key]
+            else:
+                y_data = self[key]
+            ax.plot(self[x_axis], self[key], label=label %
+                    tuple(p), *args, **kwargs)
+            if self[key].min()*self[key].max() < 0 and zero_line == 0:
+                ax.plot(self[x_axis], 0*self[key], "--k", lw=2)
+                zero_line += 1
+
+            elif self[key].min()*self[key].max() > 1 and zero_line == 0:
+                if self[key].max() < 0:
+                    y_axis = "Negative"
+                else:
+                    y_axis = "Positive"
+
+        # If sample is the same for all measurements print it on the figure
+        plt.figtext(0.1, 0.025, sample, fontsize=14)
+
+        # Makes it pretty
+        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=16)
+        ax.set_ylabel(self.__dict_axis[key], fontsize=16)
+
+        if label_size != 0:
+            ax.legend(fontsize=label_font)
+        else:
+            pass
+
+        # Set axis to start at 0
+        if x_axis in ["T_av", "T0"]:
+            ax.set_xlim(0)
+        else:
+            pass
+        if y_axis is not None:
+            if y_axis == "Positive":
+                ax.set_ylim(0, ax.get_ylim()[1])
+            else:
+                ax.set_ylim(ax.get_ylim()[0], 0)
+        else:
+            pass
+        if show is False:
+            plt.close()
+        elif show is True:
+            plt.show()
+
+        return fig, ax
+
+    def Plot_all(self, *args, **kwargs):
+        """
+        Plots all non trivial measures, all the same kwargs as Conductivity.Plot
+        with the addition of filename to save the file.
+        """
+
+        remove = ["T_av", "T0", "Tp", "Tm"]
+        measures = [i for i in self.measures if i not in remove]
+        figures = []
+
+        try:
+            save = kwargs["save"]
+            kwargs.pop("save")
+        except KeyError:
+            save = False
+
+        try:
+            filename = kwargs["filename"]
+            kwargs.pop("filename")
+        except KeyError:
+            if save is True:
+                filename = self["filename"].replace(".dat", ".pdf")
+                filename = filename.replace("data", "figures")
                 directory = "/".join(filename.split("/")[0:-1])
+                print(directory)
 
                 # Creates a figure directory with the same structure as the data
                 # directory if the answer is yes, otherwise saves the pdf file
@@ -727,36 +557,83 @@ class Conductivity():
                     if answer in ["Y", "y", "", "yes"]:
                         os.makedirs(directory)
                     else:
-                        if self.data_file is None:
-                            filename = self.data_file_up.replace(
-                                ".dat", ".pdf")
-                        else:
-                            filename = self.data_file.replace(".dat", ".pdf")
-                            print("Figures will be saved with data at %s" %
-                                  filename)
+                        filename = self["filename"].replace(".dat", ".pdf")
+                        print("Figures will be saved with data at %s" %
+                              filename)
+            else:
+                filename = None
 
+        for key in measures:
+            figures.append(self.Plot(key, *args, **kwargs)[0])
+
+        if filename is not None:
+            filename = os.path.abspath(filename)
             pp = PdfPages(filename)
-
-        figures = []
-        if self.H != 0:
-            figures.append(self.Kxy(show)[0])
-            figures.append(self.DTy(show)[0])
-        figures.append(self.Kxx(show)[0])
-        figures.append(self.Kxx_over_T(show)[0])
-        figures.append(self.DTx(show)[0])
-        if self.H != 0:
-            figures.append(self.DTy_over_DTx(show)[0])
-            figures.append(self.Kxy_over_Kxx(show)[0])
-        figures.append(self.Temperatures(show)[0])
-        figures.append(self.DTx_over_T_av(show)[0])
-        figures.append(self.Thermal_contact_resistance(show)[0])
-
-        if save is True:
             for i in figures:
                 pp.savefig(i)
             pp.close()
+        else:
+            pass
 
-        return figures
+        return
+
+    def Write_out(self, filename=None):
+        """
+        Writes the treated data to a file
+        """
+        if filename is None:
+            filename = self["filename"].replace(".dat", "_treated.dat")
+        else:
+            pass
+
+        parameters1 = ["sample", "date", "mount", "H"]
+        parameters2 = ["w", "t", "L"]
+        measures = ["T_av", "T0", "Tp", "Tm", "dTx", "kxx", "dTy", "kxy"]
+        columns = ["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
+                   "dTx(K)", "kxx(W/Km)", "dTy(K)", "kxy(W/Km)"]
+        if self["H"] == "0.0":
+            measures = measures[0:6]
+            columns = columns[0:6]
+        else:
+            pass
+
+        columns = "\t".join(columns)
+
+        comments1 = "\n".join(["%s\t=\t%s" % (i, self[i])
+                               for i in parameters1])
+        comments2 = "\n".join(["%s\t=\t%1.3e" % (i, self[i])
+                               for i in parameters2])
+        header = comments1+"\n"+comments2+"\n"+columns
+        data = np.array([self[i] for i in measures]).T
+
+        np.savetxt(filename, data, delimiter="\t",
+                   header=header, fmt="%.6e")
+
+    def __getitem__(self, key):
+        if type(key) is str:
+            return getattr(self, "__"+key)
+        else:
+            M = Measurement()
+            for i in self.measures:
+                setattr(M, "__"+i, getattr(self, "__"+i)[key])
+
+            for i in self.parameters:
+                setattr(M, "__"+i, getattr(self, "__"+i))
+
+            M["measures"] = self.measures
+            M["parameters"] = self.parameters
+            return M
+
+    def __setitem__(self, key, value):
+        if type(key) is str:
+            setattr(self, "__"+key, value)
+        else:
+            pass
+        return
+
+    def __delitem__(self, key):
+        delattr(self, "__"+key)
+        return
 
 ################################################################################
 #                       ____   ____ ____  ___ ____ _____                       #
@@ -777,8 +654,15 @@ if __name__ == "__main__":
         w = float(sys.argv[2])
         t = float(sys.argv[3])
         L = float(sys.argv[4])
-        sample = Conductivity(filename, w, t, L)
+        sign = int(sys.argv[5])
+        sample = Conductivity(filename, w, t, L, sign)
     except IndexError:
-        sample = Conductivity(filename)
-    sample.Plot_all()
-    sample.Write_data()
+        try:
+            w = float(sys.argv[2])
+            t = float(sys.argv[3])
+            L = float(sys.argv[4])
+            sample = Conductivity(filename, w, t, L, sign)
+        except IndexError:
+            sample = Conductivity(filename)
+    sample.Plot_all(save=True)
+    sample.Write_out()
