@@ -254,7 +254,8 @@ class Conductivity():
                                 raise Exception("No known measurements found")
                             else:
                                 pass
-
+                else:
+                    pass
 
     def Symmetrize(self):
         """
