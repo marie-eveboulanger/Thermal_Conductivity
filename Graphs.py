@@ -261,6 +261,7 @@ class Data_Set():
     __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
     __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
     __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
+    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
     __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
     __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
     __dict_axis["Tp_Tm"] = __dict_axis["T_av"]

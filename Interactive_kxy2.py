@@ -76,6 +76,32 @@ class Conductivity():
     __dict_parameters["sample"] = ["Sample", "sample"]
     __dict_parameters["date"] = ["Date", "date"]
 
+    # Creation of an internal dictionnary used to match measurements to their
+    # respective axis titles to make the figures prettier.
+    __list_measures = list()
+    __list_parameters = list()
+    __dict_axis = dict()
+    __dict_axis["T_av"] = r"T ( K )"
+    __dict_axis["T0"] = r"$T_0$ ( K )"
+    __dict_axis["Tp"] = __dict_axis["T_av"]
+    __dict_axis["Tm"] = __dict_axis["T_av"]
+    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
+    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
+    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
+    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
+    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
+    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
+    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
+    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
+    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
+    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
+
+    # Same principle then before but for curve labels
+    __dict_labels = dict()
+    __dict_labels["H"] = r"H = %sT"
+    __dict_labels["sample"] = r"Sample: %s"
+    __dict_labels["date"] = r"%s"
+
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1):
 
         self.parameters = []
@@ -85,7 +111,7 @@ class Conductivity():
             self.parameters.append(key)
 
         if sign in [1, -1]:
-            self.sign = sign
+            self["sign"] = sign
         else:
             raise ValueError("Sign must be 1 or -1")
 
@@ -95,6 +121,7 @@ class Conductivity():
             self.__symetrize()
 
         self.__analyze()
+        self.__add_measure()
 
         return
 
@@ -134,7 +161,7 @@ class Conductivity():
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
             if self["H"] != "0.0":
                 S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
-                self["dTy"] = self.sign*(self["dTy_Q"]-self["dTy_0"])/1000/S
+                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/1000/S
                 self["kxy"] = self["kxx"]*self["dTy"] / \
                     self["dTx"]*self["L"]/self["w"]
                 self.measures += ["dTy", "kxy"]
@@ -164,7 +191,7 @@ class Conductivity():
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
             if self["H"] != "0.0":
                 S = seebeck_thermometry(T_av)
-                self["dTy"] = self.sign*(self["dTy_Q"]-self["dTy_0"])/S/1000
+                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/S/1000
                 self["kxy"] = self["kxx"]*self["dTy"] / \
                     self["dTx"]*self["L"]/self["w"]
                 self.measures += ["dTy", "kxy"]
@@ -299,6 +326,216 @@ class Conductivity():
                 self.parameters += parameters
                 self.measures = measures
                 self.raw_data = raw_data
+
+        return
+
+    def __add_measure(self):
+        if "T_av" and "kxx" in self.measures:
+            self.measures.append("kxx/T")
+            self["kxx/T"] = self["kxx"]/self["T_av"]
+        else:
+            pass
+
+        if "T_av" and "dTx" in self.measures:
+            self.measures.append("dTx/T")
+            self["dTx/T"] = self["dTx"]/self["T_av"]
+        else:
+            pass
+
+        if "T_av" and "T0" and "dTx" in self.measures:
+            self.measures.append("Resistance")
+            self["Resistance"] = (self["T_av"]-self["T0"])/self["dTx"]
+        else:
+            pass
+
+        if "dTx" and "dTy" in self.measures:
+            self.measures.append("dTy/dTx")
+            self["dTy/dTx"] = self["dTy"]/self["dTx"]
+        else:
+            pass
+
+        if "kxx" and "kxy" in self.measures:
+            self.measures.append("kxy/kxx")
+            self["kxy/kxx"] = self["kxy"]/self["kxx"]
+        else:
+            pass
+
+        if "Tp" and "Tm" in self.measures:
+            self.measures.append("Tp_Tm")
+            self["Tp_Tm"] = None
+
+        return
+
+    def Plot(self, key, *args, **kwargs):
+        """
+        Plots data corresponding to key.
+
+        kwargs are all passed to ax.plot from matplotlib except the following:
+        ------------------------------------------------------------------------
+        show :  Bool
+            Determines if the figure is shown ore closed defaults to True
+        x_axis : str
+            The key for the x-axis defaults to "T_av"
+        parameter : str
+            The key corresponding to the compared parameter defaults to "H"
+        """
+
+        # Looks for show as kwarg
+        try:
+            show = kwargs["show"]
+            if type(show) is not bool:
+                if show is not None:
+                    raise TypeError("show must be of type bool or None")
+                else:
+                    pass
+            else:
+                kwargs.pop("show")
+        except KeyError:
+            show = True
+
+        # Looks for x_axis as kwarg
+        try:
+            x_axis = kwargs["x_axis"]
+            if x_axis not in self.measures:
+                raise ValueError("x_axis must be in self.measures")
+            else:
+                kwargs.pop("x_axis")
+        except KeyError:
+            x_axis = "T_av"
+
+        # Looks for parameter as kwarg
+        try:
+            parameters = kwargs["parameters"]
+            if type(parameters) is not list:
+                if type(parameters) is str:
+                    parameters = [parameters]
+                else:
+                    raise TypeError("Parameter must be a string")
+            else:
+                pass
+            for parameter in parameters:
+                if parameter not in self.parameters:
+                    raise ValueError("parameter must be in self.parameters")
+                else:
+                    pass
+            kwargs.pop("parameters")
+
+        except KeyError:
+            parameters = ["H"]
+
+        # Sets the label according to parameters
+        labels = []
+        for parameter in parameters:
+            try:
+                label = self.__dict_labels[parameter]
+            except KeyError:
+                label = "%s"
+            labels.append(label)
+        label = ", ".join(labels)
+        label_size = len(label)
+        if label_size == 1:
+            label_font = 14
+        elif label_size == 2:
+            label_font = 12
+        elif label_size > 2:
+            label_font = 10
+
+        # Checks that key is a valid measurement
+        if key in self.measures is False:
+            raise ValueError("%s is not in self.measures") % (key)
+        else:
+            pass
+
+        # Tries to find sample name
+        if "sample" in self.parameters:
+            sample = self["sample"]
+        else:
+            pass
+
+        fig, ax = plt.subplots()
+        zero_line = 0
+        y_axis = None
+
+        # Draws the curves
+        if key == "Tp_Tm":
+            p = [self[parameter] for parameter in parameters]
+            ax.plot(self[x_axis], self["Tp"], label="T+ "+label %
+                    tuple(p), *args, **kwargs)
+            ax.plot(self[x_axis], self["Tm"], label="T- "+label %
+                    tuple(p), *args, **kwargs)
+        else:
+            p = [self[parameter] for parameter in parameters]
+            x_data = self[x_axis]
+            if key in ["kxy", "kxy/T"]:
+                y_data = 10*self[key]
+            else:
+                y_data = self[key]
+            ax.plot(self[x_axis], self[key], label=label %
+                    tuple(p), *args, **kwargs)
+            if self[key].min()*self[key].max() < 0 and zero_line == 0:
+                ax.plot(self[x_axis], 0*self[key], "--k", lw=2)
+                zero_line += 1
+
+            elif self[key].min()*self[key].max() > 1 and zero_line == 0:
+                if self[key].max() < 0:
+                    y_axis = "Negative"
+                else:
+                    y_axis = "Positive"
+
+        # If sample is the same for all measurements print it on the figure
+        plt.figtext(0.1, 0.025, sample, fontsize=14)
+
+        # Makes it pretty
+        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=16)
+        ax.set_ylabel(self.__dict_axis[key], fontsize=16)
+        ax.legend(fontsize=label_font)
+
+        # Set axis to start at 0
+        if x_axis in ["T_av", "T0"]:
+            ax.set_xlim(0)
+        else:
+            pass
+        if y_axis is not None:
+            if y_axis == "Positive":
+                ax.set_ylim(0, ax.get_ylim()[1])
+            else:
+                ax.set_ylim(ax.get_ylim()[0], 0)
+        else:
+            pass
+        if show is False:
+            plt.close()
+        elif show is True:
+            plt.show()
+
+        return fig, ax
+
+    def Plot_all(self, *args, **kwargs):
+        """
+        Plots all non trivial measures, all the same kwargs as Conductivity.Plot
+        with the addition of filename to save the file.
+        """
+
+        remove = ["T_av", "T0", "Tp", "Tm"]
+        measures = [i for i in self.measures if i not in remove]
+        figures = []
+
+        try:
+            filename = kwargs["filename"]
+            kwargs.pop("filename")
+        except KeyError:
+            filename = None
+
+        for key in measures:
+            figures.append(self.Plot(key, *args, **kwargs)[0])
+
+        if filename is not None:
+            filename = os.path.abspath(filename)
+            pp = PdfPages(filename)
+            for i in figures:
+                pp.savefig(i)
+            pp.close()
+        else:
+            pass
 
         return
 
