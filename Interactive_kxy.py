@@ -346,7 +346,7 @@ class Conductivity():
 
         if "T_av" and "dTx" in self.measures:
             self.measures.append("dTx/T")
-            self["dTx/T"] = self["dTx"]/self["T_av"]
+            self["dTx/T"] = self["dTx"]/self["T_av"]*100
         else:
             pass
 
@@ -358,13 +358,13 @@ class Conductivity():
 
         if "dTx" and "dTy" in self.measures:
             self.measures.append("dTy/dTx")
-            self["dTy/dTx"] = self["dTy"]/self["dTx"]
+            self["dTy/dTx"] = self["dTy"]/self["dTx"]*100
         else:
             pass
 
         if "kxx" and "kxy" in self.measures:
             self.measures.append("kxy/kxx")
-            self["kxy/kxx"] = self["kxy"]/self["kxx"]
+            self["kxy/kxx"] = self["kxy"]/self["kxx"]*100
         else:
             pass
 
