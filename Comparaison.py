@@ -541,8 +541,9 @@ class Data_Set():
             kwargs.pop("ax")
             return_fig = False
         except KeyError:
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(8,4.5))
             return_fig = True
+
         zero_line = 0
         y_axis = None
 
@@ -584,7 +585,7 @@ class Data_Set():
         # If sample is the same for all measurements print it on the figure
         if len(fig.axes) == 1:
             fig.tight_layout()
-            plt.figtext(0.095, 0.05, sample, fontsize=axis_fs -
+            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
                         2, va="baseline", ha="left")
         else:
             pass

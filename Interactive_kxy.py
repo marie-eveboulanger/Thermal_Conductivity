@@ -411,6 +411,13 @@ class Conductivity():
         except KeyError:
             x_axis = "T_av"
 
+        # Looks for axis_fontsize as kwarg
+        try:
+            axis_fs = kwargs["axis_fontsize"]
+            kwargs.pop("axis_fontsize")
+        except KeyError:
+            axis_fs = 16
+
         # Looks for parameter as kwarg
         try:
             parameters = kwargs["parameters"]
@@ -460,7 +467,17 @@ class Conductivity():
         else:
             pass
 
-        fig, ax = plt.subplots()
+        # Looks for fig and ax
+        try:
+            fig = kwargs["fig"]
+            ax = kwargs["ax"]
+            kwargs.pop("fig")
+            kwargs.pop("ax")
+            return_fig = False
+        except KeyError:
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            return_fig = True
+
         zero_line = 0
         y_axis = None
 
@@ -492,11 +509,18 @@ class Conductivity():
                     y_axis = "Positive"
 
         # If sample is the same for all measurements print it on the figure
-        plt.figtext(0.1, 0.025, sample, fontsize=14)
+        if len(fig.axes) == 1:
+            fig.tight_layout()
+            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
+                        2, va="baseline", ha="left")
+        else:
+            pass
 
         # Makes it pretty
-        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=16)
-        ax.set_ylabel(self.__dict_axis[key], fontsize=16)
+        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
+        ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
+        ax.tick_params(axis="both", which="both", direction="in",
+                       top=True, right=True)
 
         if label_size != 0:
             ax.legend(fontsize=label_font)
