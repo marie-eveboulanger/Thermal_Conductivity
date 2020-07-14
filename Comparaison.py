@@ -240,6 +240,7 @@ class Measurement():
 
         return
 
+
 class Data_Set():
     """
     This class contains multiple Measurement objects and is used to compare them
@@ -266,7 +267,7 @@ class Data_Set():
     __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
     __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
 
-    # Same principle then before but for curve labels 
+    # Same principle then before but for curve labels
     __dict_labels = dict()
     __dict_labels["H"] = r"H = %sT"
     __dict_labels["sample"] = r"Sample: %s"
@@ -456,7 +457,7 @@ class Data_Set():
                 if show is not None:
                     raise TypeError("show must be of type bool or None")
                 else:
-                    pass
+                    kwargs.pop("show")
             else:
                 kwargs.pop("show")
         except KeyError:
@@ -471,6 +472,13 @@ class Data_Set():
                 kwargs.pop("x_axis")
         except KeyError:
             x_axis = "T_av"
+
+        # Looks for axis_fontsize as kwarg
+        try:
+            axis_fs = kwargs["axis_fontsize"]
+            kwargs.pop("axis_fontsize")
+        except KeyError:
+            axis_fs = 16
 
         # Looks for parameter as kwarg
         try:
@@ -525,7 +533,16 @@ class Data_Set():
                     sample = None
                     break
 
-        fig, ax = plt.subplots()
+        # Looks for fig and ax
+        try:
+            fig = kwargs["fig"]
+            ax = kwargs["ax"]
+            kwargs.pop("fig")
+            kwargs.pop("ax")
+            return_fig = False
+        except KeyError:
+            fig, ax = plt.subplots()
+            return_fig = True
         zero_line = 0
         y_axis = None
 
@@ -557,13 +574,21 @@ class Data_Set():
                     else:
                         y_axis = "Positive"
 
-        # If sample is the same for all measurements print it on the figure
-        plt.figtext(0.1, 0.025, sample, fontsize=14)
-
         # Makes it pretty
-        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=16)
-        ax.set_ylabel(self.__dict_axis[key], fontsize=16)
+        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
+        ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
         ax.legend(fontsize=label_font)
+        ax.tick_params(axis="both", which="both", direction="in",
+                       top=True, right=True)
+
+        # If sample is the same for all measurements print it on the figure
+        if len(fig.axes) == 1:
+            fig.tight_layout()
+            plt.figtext(0.095, 0.05, sample, fontsize=axis_fs -
+                        2, va="baseline", ha="left")
+        else:
+            pass
+            # ax.set_title(self.__dict_axis[key].split("(")[0],fontsize=axis_fs)
 
         # Set axis to start at 0
         if x_axis in ["T_av", "T0"]:
@@ -577,12 +602,18 @@ class Data_Set():
                 ax.set_ylim(ax.get_ylim()[0], 0)
         else:
             pass
+
         if show is False:
             plt.close()
         elif show is True:
             plt.show()
+        else:
+            pass
 
-        return fig, ax
+        if return_fig is True:
+            return fig, ax
+        else:
+            return
 
     def Plot_all(self, *args, **kwargs):
         """
