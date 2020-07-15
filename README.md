@@ -4,15 +4,15 @@ Analysis code for thermal conductivity measurements. Used to analyze de data, ge
 # Installation
 Simply git clone the repository and add the new directory to your python path
 
-# Which code to use?
-## Interactive_ky.py
+# Which submodule to use?
+## Analysis
 - Treat raw data
 - Generate the current function for a sample
 - Display the recently treated data
 
-## Comparison.py
+## Comparison
 - Plot already treated data
 - Compare mutliple measurements
 
-## Thermometry.py
-- Should not be used, is a dependency of Interactive_ky.py
+## Thermometry
+- Get seebeck coefficients
