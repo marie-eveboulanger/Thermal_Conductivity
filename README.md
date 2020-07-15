@@ -1,4 +1,4 @@
-# Thermal_Conductivity
+# Thermal Conductivity
 Analysis code for thermal conductivity measurements. Used to analyze de data, generate current functions plots etc.
 
 # Installation
