@@ -733,13 +733,13 @@ class Conductivity():
         """
 
         datafile = os.path.abspath("/".join(self["filename"].split("/")[0:-1]))
-        rnge = "%1.2f%s-%1.2f%s.dat" % (_min, "%", _max, "%")
+        rnge = "%1.0f%s_to_%1.0f%s.dat" % (_min, "%", _max, "%")
         name = "_".join([self["sample"].replace(" ", "_"), "dTovT", rnge])
         datafile = os.path.join(datafile, name)
         n = self["T_av"].shape[0]
         dT_T = np.linspace(_min/100, _max/100, n)
         alpha = self["w"]*self["t"]/self["L"]
-        I = np.sqrt(self["kxx"]*alpha*self["T_av"]/5000)
+        I = np.sqrt(self["kxx"]*alpha*self["T_av"]*dT_T/5000)
         coeff_I = np.polyfit(self["T0"], I, deg)
         poly_func = np.poly1d(coeff_I)
         T0 = np.linspace(0, T_max, N)
