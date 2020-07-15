@@ -1,3 +1,4 @@
+setup.cfg
 dist/
 /dist
 *.egg-info
