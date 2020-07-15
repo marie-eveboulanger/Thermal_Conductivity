@@ -12,12 +12,7 @@ foo@bar:~$ git clone https://github.com/a-dumont/Thermal_Conductivity
 Go to the new Thermal_Conductivity directory and run the installation command:
 ```console
 foo@bar:~$ cd Thermal_Conductivity
-foo@bar:~$ python3 setup.py sdist
-```
-
-Finally install the tar file using pip:
-```console
-foo@bar:~$ pip install dist/ThermalConductivity.tar.gz
+foo@bar:~$ pip install .
 ```
 
 ## Install a release
