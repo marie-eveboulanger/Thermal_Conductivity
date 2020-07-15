@@ -2,7 +2,29 @@
 Analysis code for thermal conductivity measurements. Used to analyze de data, generate current functions plots etc.
 
 # Installation
-Simply git clone the repository and add the new directory to your python path
+## Build from source (Recommended)
+Go to your build directory (Ex: Downloads) and git clone the repository:
+```console
+foo@bar:~$ cd Downloads
+foo@bar:~$ git clone https://github.com/a-dumont/Thermal_Conductivity
+```
+
+Go to the new Thermal_Conductivity directory and run the installation command:
+```console
+foo@bar:~$ cd Thermal_Conductivity
+foo@bar:~$ python3 setup.py sdist
+```
+
+Finally install the tar file using pip:
+```console
+foo@bar:~$ pip install dist/ThermalConductivity.tar.gz
+```
+
+## Install a release
+Download the latest tar file and install using pip
+```console
+foo@bar:~$ pip install path/to/ThermalConductivity.tar.gz
+```
 
 # Which submodule to use?
 ## Analysis
