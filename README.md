@@ -2,7 +2,7 @@
 Analysis code for thermal conductivity measurements. Used to analyze de data, generate current functions plots etc.
 
 # Installation
-## Build from source (Recommended)
+## Build from source
 Go to your build directory (Ex: Downloads) and git clone the repository:
 ```console
 foo@bar:~$ cd Downloads
