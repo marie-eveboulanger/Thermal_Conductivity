@@ -7,6 +7,7 @@ setuptools.setup(
     name="ThermalConductivity", # Replace with your own username
     version="1.1",
     author="Alexandre Dumont",
+    author_email="alexandre.dumont3@usherbrooke.ca",
     description="A module to analyze thermal conductivity measurements",
     long_description=long_description,
     long_description_content_type="text/markdown",
