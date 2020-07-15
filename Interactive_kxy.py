@@ -374,6 +374,35 @@ class Conductivity():
 
         return
 
+    def __create_grid(self, measures):
+        n = len(measures)
+
+        if n % 2 == 0:
+            N = n//2
+            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+            axes = ax.flatten().tolist()
+        else:
+            N = n//2+1
+            s = (N, 4)
+            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+            axes = []
+            loc = (0, 0)
+            for i in range(n):
+
+                if i != 0:
+                    if i != n-1:
+                        if int(loc[1]) == 0:
+                            loc = (loc[0], 2)
+                        elif int(loc[1]) == 2:
+                            loc = (loc[0]+1, 0)
+                    else:
+                        loc = (N-1, 1)
+                else:
+                    pass
+                axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
+
+        return fig, axes
+
     def Plot(self, key, *args, **kwargs):
         """
         Plots data corresponding to key.
@@ -395,7 +424,7 @@ class Conductivity():
                 if show is not None:
                     raise TypeError("show must be of type bool or None")
                 else:
-                    pass
+                    kwargs.pop("show")
             else:
                 kwargs.pop("show")
         except KeyError:
@@ -600,6 +629,53 @@ class Conductivity():
             pass
 
         return
+
+    def Plot_fancy(self, *args, **kwargs):
+        """
+        Just like Plot_all but with a fancy layout that is more suited to
+        ipython notebooks
+        """
+
+        remove = ["T_av", "T0", "Tp", "Tm"]
+
+        measures = [i for i in self.measures if i not in remove]
+        ref_meas = ["kxx", "kxx/T", "kxy", "kxy/T", "dTx",
+                    "dTx/T", "dTy/dTx", "Resistance","Tp_Tm"]
+        measures = [i for i in ref_meas if i in measures]
+
+        fig, ax = self.__create_grid(measures)
+
+        try:
+            kwargs.pop("show")
+        except KeyError:
+            pass
+
+        try:
+            filename = kwargs["filename"]
+            kwargs.pop("filename")
+        except KeyError:
+            filename = None
+
+        for i in range(len(measures)):
+            self.Plot(measures[i], *args, show=None,
+                      fig=fig, ax=ax[i], **kwargs)
+
+        if hasattr(self,"__sample") is True:
+            plt.suptitle(self["sample"], fontsize=22)
+        else:
+            pass
+
+        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+        if filename is not None:
+            filename = os.path.abspath(filename)
+            pp = PdfPages(filename)
+            pp.savefig(fig)
+            pp.close()
+        else:
+            pass
+
+        return fig, ax
 
     def Write_out(self, filename=None):
         """

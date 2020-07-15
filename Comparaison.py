@@ -441,7 +441,8 @@ class Data_Set():
 
         if n % 2 == 0:
             N = n//2
-            fig, axes = plt.subplots(N, 2, figsize=(16, N*4.5))
+            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+            axes = ax.flatten().tolist()
         else:
             N = n//2+1
             s = (N, 4)
@@ -722,7 +723,7 @@ class Data_Set():
                       fig=fig, ax=ax[i], **kwargs)
 
         if sample is not None:
-            plt.suptitle(sample,fontsize=22)
+            plt.suptitle(sample, fontsize=22)
         else:
             pass
 
