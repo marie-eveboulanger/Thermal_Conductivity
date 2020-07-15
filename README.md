@@ -13,3 +13,6 @@ Simply git clone the repository and add the new directory to your python path
 ## Comparison.py
 - Plot already treated data
 - Compare mutliple measurements
+
+## Thermometry.py
+- Should not be used, is a dependency of Interactive_ky.py
