@@ -50,6 +50,8 @@ class Conductivity():
     __dict_measures["Resistance"] = ["Resistance"]
     __dict_measures["dTx/T"] = ["dTx/T"]
     __dict_measures["Tp_Tm"] = ["Tp_Tm"]
+    __dict_measures["I_fit"] = ["I_fit"]
+    __dict_measures["T0_fit"] = ["T0_fit"]
 
     # Creation of a dictionnary to sort raw data
     __dict_raw = dict()
@@ -95,6 +97,8 @@ class Conductivity():
     __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
     __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
     __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
+    __dict_axis["T0_fit"] = __dict_axis["T0"]
+    __dict_axis["I_fit"] = r"I ( mA )"
 
     # Same principle then before but for curve labels
     __dict_labels = dict()
@@ -581,7 +585,7 @@ class Conductivity():
         with the addition of filename to save the file.
         """
 
-        remove = ["T_av", "T0", "Tp", "Tm"]
+        remove = ["T_av", "T0", "Tp", "Tm", "T0_fit", "I_fit"]
         measures = [i for i in self.measures if i not in remove]
         figures = []
 
@@ -598,7 +602,7 @@ class Conductivity():
             if save is True:
                 filename = self["filename"].replace(".dat", ".pdf")
                 filename = filename.replace("data", "figures")
-                directory = "/".join(filename.split("/")[0:-1])
+                directory = os.path.split(filename)[0]
                 print(directory)
 
                 # Creates a figure directory with the same structure as the data
@@ -636,11 +640,11 @@ class Conductivity():
         ipython notebooks
         """
 
-        remove = ["T_av", "T0", "Tp", "Tm"]
+        remove = ["T_av", "T0", "Tp", "Tm", "I_fit", "T0_fit"]
 
         measures = [i for i in self.measures if i not in remove]
         ref_meas = ["kxx", "kxx/T", "kxy", "kxy/T", "dTx",
-                    "dTx/T", "dTy/dTx", "Resistance","Tp_Tm"]
+                    "dTx/T", "dTy/dTx", "Resistance", "Tp_Tm"]
         measures = [i for i in ref_meas if i in measures]
 
         fig, ax = self.__create_grid(measures)
@@ -660,7 +664,7 @@ class Conductivity():
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
 
-        if hasattr(self,"__sample") is True:
+        if hasattr(self, "__sample") is True:
             plt.suptitle(self["sample"], fontsize=22)
         else:
             pass
@@ -708,6 +712,111 @@ class Conductivity():
 
         np.savetxt(filename, data, delimiter="\t",
                    header=header, fmt="%.6e")
+
+    def Current(self, _min, _max, deg=5, T_max=100, N=100, *args, **kwargs):
+        """
+        Used to compute the optimal current function for the sample.
+
+        Parameters:
+        ------------------------------------------------------------------------
+        _min, _max: int or float
+                The min/max of dT/T in percentages
+
+        deg:        int
+                The degree of the polynomial fit
+
+        T_max:      int or float
+                T0 max for the plot
+
+        N:          int
+                Number of points in the plot
+        """
+
+        datafile = os.path.abspath("/".join(self["filename"].split("/")[0:-1]))
+        rnge = "%1.2f%s-%1.2f%s.dat" % (_min, "%", _max, "%")
+        name = "_".join([self["sample"].replace(" ", "_"), "dTovT", rnge])
+        datafile = os.path.join(datafile, name)
+        n = self["T_av"].shape[0]
+        dT_T = np.linspace(_min/100, _max/100, n)
+        alpha = self["w"]*self["t"]/self["L"]
+        I = np.sqrt(self["kxx"]*alpha*self["T_av"]/5000)
+        coeff_I = np.polyfit(self["T0"], I, deg)
+        poly_func = np.poly1d(coeff_I)
+        T0 = np.linspace(0, T_max, N)
+        I_fit = poly_func(T0)
+
+        self["T0_fit"] = T0
+        self["I_fit"] = I_fit*1000
+        self["coeff_I"] = coeff_I
+        self.measures += ["T0_fit", "I_fit"]
+
+        # Looks for show as kwarg
+        try:
+            show = kwargs["show"]
+            if type(show) is not bool:
+                if show is not None:
+                    raise TypeError("show must be of type bool or None")
+                else:
+                    kwargs.pop("show")
+            else:
+                kwargs.pop("show")
+        except KeyError:
+            show = True
+
+        try:
+            filename = kwargs["filename"]
+            kwargs.pop("filename")
+        except KeyError:
+            filename = None
+
+        label = r"$\Delta$ T / T from %1.2f%s to %1.2f%s" % (
+            _min, "%", _max, "%")
+
+        fig, ax = self.Plot("I_fit", x_axis="T0_fit", show=None, parameters=[])
+        plt.figtext(1-0.005, 0.005, label, fontsize=14,
+                    va="baseline", ha="right")
+
+        if show is True:
+            plt.show()
+        elif show is False:
+            plt.close()
+        else:
+            pass
+
+        if filename is not None:
+            filename = os.path.abspath(filename)
+            pp = PdfPages(filename)
+            pp.savefig(fig)
+            pp.close()
+        else:
+            pass
+
+        try:
+            write = kwargs["write"]
+            kwargs.pop("write")
+        except KeyError:
+            if os.path.isfile(datafile) is False:
+                write = True
+            else:
+                answer = input(
+                    "File %s already exists, overwrite? (y/N)" % datafile)
+                if answer in ["Y", "y", "O", "o", "yes", "Yes", "oui", "Oui"]:
+                    write = True
+                    print("File overwritten")
+                else:
+                    write = False
+                    print("File will not be saved")
+
+        if write is True:
+            degrees = np.array([i for i in range(coeff_I.shape[0])])
+            data = np.array([degrees, coeff_I]).T
+            header = "Current function coefficients\norder\tcoeff"
+            np.savetxt(datafile, data, delimiter="\t",
+                       header=header, fmt=["%i", "%.18e"])
+        else:
+            pass
+
+        return
 
     def __getitem__(self, key):
         if type(key) is str:
