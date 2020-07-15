@@ -1,3 +1,5 @@
+dist/
+/dist
 *.egg-info
 /*.egg-info
 /*/*.egg-info
