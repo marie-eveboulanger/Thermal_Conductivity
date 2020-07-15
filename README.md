@@ -1,5 +1,5 @@
-# Conductivite_Thermique
-Code d'Analyse pour kxx/kxy
+# Thermal_Conductivity
+Analysis code for thermal conductivity measurements. Used to analyze de data, generate current functions plots etc.
 
 # Installation
 Simply git clone the repository and add the new directory to your python path
@@ -10,6 +10,6 @@ Simply git clone the repository and add the new directory to your python path
 - Generate the current function for a sample
 - Display the recently treated data
 
-## Comparaison.py
+## Comparison.py
 - Plot already treated data
 - Compare mutliple measurements
