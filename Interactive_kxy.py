@@ -17,7 +17,7 @@ import numpy.polynomial.polynomial as npp
 import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from thermometry import seebeck_thermometry
+from Thermometry import seebeck_thermometry
 
 ################################################################################
 #                          ____ _        _    ____ ____                        #
