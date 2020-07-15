@@ -809,7 +809,7 @@ class Conductivity():
 
         if write is True:
             degrees = np.array([i for i in range(coeff_I.shape[0])])
-            data = np.array([degrees, coeff_I]).T
+            data = np.array([degrees, coeff_I[::-1]]).T
             header = "Current function coefficients\norder\tcoeff"
             np.savetxt(datafile, data, delimiter="\t",
                        header=header, fmt=["%i", "%.18e"])
