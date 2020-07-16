@@ -12,6 +12,7 @@ directory structure as the data folder.
 """
 import sys
 import os
+import datetime
 import numpy as np
 import numpy.polynomial.polynomial as npp
 import matplotlib as mp
@@ -37,7 +38,7 @@ class Conductivity():
 
     # Creation of a dictionnary to sort data
     __dict_measures = dict()
-    __dict_measures["T0"] = ["T0(K)","T0 (K)"]
+    __dict_measures["T0"] = ["T0(K)", "T0 (K)"]
     __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
     __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
     __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
@@ -121,6 +122,16 @@ class Conductivity():
         except KeyError:
             self["force_kxy"] = False
 
+        try:
+            self["symetrize"] = kwargs["symetrize"]
+            kwargs.pop("symetrize")
+            if type(self["symetrize"]) is bool:
+                pass
+            else:
+                raise TypeError("symetrize must be True or False")
+        except KeyError:
+            self["symetrize"] = True
+
         for key, value in kwargs.items():
             setattr(self, "__"+key, value)
             self.parameters.append(key)
@@ -138,11 +149,11 @@ class Conductivity():
                 setattr(self, "__"+key, value)
                 self.parameters.append(key)
 
-            if getattr(self, "__H") != "0.0":
-                self.__symetrize()
+            if getattr(self, "__H") != "0.0" and self["symetrize"] is True:
+                self.__Symetrize()
             else:
                 pass
-            self.__analyze()
+            self.__Analyze()
         else:
             pass
 
@@ -150,7 +161,7 @@ class Conductivity():
 
         return
 
-    def __symetrize(self):
+    def __Symetrize(self):
         sym = ["T0", "I", "R+_0", "R+_Q", "R-_0", "R-_Q",
                "dTabs_0", "dTabs_Q", "dTx_0", "dTx_Q"]
         anti_sym = ["dTy_0", "dTy_Q"]
@@ -167,7 +178,7 @@ class Conductivity():
                 pass
         return
 
-    def __analyze(self):
+    def __Analyze(self):
         # Probe Tallahasse
         if self["probe"] == "Tallahasse":
             # Polyfit of R+ and R-
@@ -262,14 +273,46 @@ class Conductivity():
         parameters.append("mount")
 
         # Read the data
-        if H == "0.0":
+        if H == "0.0" or self["symetrize"] is False:
             data = np.genfromtxt(filename, delimiter="\t").T
         else:
             if len(filename.split("--")) == 1:
                 filename2 = filename.replace("TS-", "TS--")
+                exist = os.path.isfile(filename2)
+                if exist is True:
+                    pass
+                else:
+                    dates = self.__Dates(date)
+                    for i in dates:
+                        filename2 = filename2.replace(date, i)
+                        exist = os.path.isfile(filename2)
+                        if exist is True:
+                            break
+                        else:
+                            pass
+                    if exist is False:
+                        filename2 = filename
+                    else:
+                        pass
             else:
                 filename2 = filename
                 filename = filename2.replace("--", "-")
+                exist = os.path.isfile(filename)
+                if exist is True:
+                    pass
+                else:
+                    dates = self.__Dates(date)
+                    for i in dates:
+                        filename = filename.replace(date, i)
+                        exist = os.path.isfile(filename)
+                        if exist is True:
+                            break
+                        else:
+                            pass
+                    if exist is False:
+                        filename = filename2
+                    else:
+                        pass
 
             data = np.genfromtxt(filename, delimiter="\t").T
             data2 = np.genfromtxt(filename2, delimiter="\t").T
@@ -357,6 +400,12 @@ class Conductivity():
                 self.raw_data = raw_data
 
         return
+
+    def __Dates(self, date):
+        d = datetime.date(*tuple([int(i) for i in date.split("-")]))
+        dates = ["%s" % (d+datetime.timedelta(i))
+                 for i in range(-2, 3) if i != 0]
+        return dates
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
