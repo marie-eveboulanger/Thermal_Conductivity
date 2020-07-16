@@ -625,14 +625,6 @@ class Conductivity():
                 else:
                     y_axis = "Positive"
 
-        # If sample is the same for all measurements print it on the figure
-        if len(fig.axes) == 1:
-            fig.tight_layout()
-            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="baseline", ha="left")
-        else:
-            pass
-
         # Makes it pretty
         ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
         ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
@@ -641,6 +633,14 @@ class Conductivity():
 
         if label_size != 0:
             ax.legend(fontsize=label_font)
+        else:
+            pass
+
+        # If sample is the same for all measurements print it on the figure
+        if len(fig.axes) == 1:
+            fig.tight_layout()
+            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
+                        2, va="baseline", ha="left")
         else:
             pass
 
