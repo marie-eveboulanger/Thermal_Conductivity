@@ -730,7 +730,7 @@ class Data_Set():
         else:
             pass
 
-        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+        fig.tight_layout(rect=[0.05, 0.05, 1, 0.95])
 
         if filename is not None:
             filename = os.path.abspath(filename)
