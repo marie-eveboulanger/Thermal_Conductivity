@@ -123,14 +123,14 @@ class Conductivity():
             self["force_kxy"] = False
 
         try:
-            self["symetrize"] = kwargs["symetrize"]
-            kwargs.pop("symetrize")
-            if type(self["symetrize"]) is bool:
+            self["symmetrize"] = kwargs["symmetrize"]
+            kwargs.pop("symmetrize")
+            if type(self["symmetrize"]) is bool:
                 pass
             else:
-                raise TypeError("symetrize must be True or False")
+                raise TypeError("symmetrize must be True or False")
         except KeyError:
-            self["symetrize"] = True
+            self["symmetrize"] = True
 
         for key, value in kwargs.items():
             setattr(self, "__"+key, value)
@@ -150,8 +150,8 @@ class Conductivity():
                     setattr(self, "__"+key, value)
                     self.parameters.append(key)
 
-                if getattr(self, "__H") != "0.0" and self["symetrize"] is True:
-                    self.__Symetrize()
+                if getattr(self, "__H") != "0.0" and self["symmetrize"] is True:
+                    self.__Symmetrize()
                 else:
                     pass
                 self.__Analyze()
@@ -162,7 +162,7 @@ class Conductivity():
 
         return
 
-    def __Symetrize(self):
+    def __Symmetrize(self):
         sym = ["T0", "I", "R+_0", "R+_Q", "R-_0", "R-_Q",
                "dTabs_0", "dTabs_Q", "dTx_0", "dTx_Q"]
         anti_sym = ["dTy_0", "dTy_Q"]
@@ -257,7 +257,7 @@ class Conductivity():
         # Magnetic field
         f = filename.split("/")[-1].split(".")
         H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
-        if "H" != "0.0" and self["symetrize"] is False:
+        if "H" != "0.0" and self["symmetrize"] is False:
             if len(filename.split("--")) == 1:
                 pass
             else:
@@ -265,7 +265,7 @@ class Conductivity():
         setattr(self, "__H", H)
         parameters.append("H")
         if H == "0.0":
-            self["symetrize"] = False
+            self["symmetrize"] = False
         else:
             pass
 
@@ -283,7 +283,7 @@ class Conductivity():
         parameters.append("mount")
 
         # Read the data
-        if H == "0.0" or self["symetrize"] is False:
+        if H == "0.0" or self["symmetrize"] is False:
             data = np.genfromtxt(filename, delimiter="\t").T
         else:
             if len(filename.split("--")) == 1:
@@ -329,7 +329,7 @@ class Conductivity():
                         filename = filename3
 
             if filename == filename2:
-                self["symetrize"] = False
+                self["symmetrize"] = False
             else:
                 pass
             data = np.genfromtxt(filename, delimiter="\t").T
@@ -374,7 +374,7 @@ class Conductivity():
                 for key, values in self.__dict_raw.items():
                     for i in range(len(l)):
                         if l[i].strip() in values:
-                            if H != "0.0" and self["symetrize"] is True:
+                            if H != "0.0" and self["symmetrize"] is True:
                                 setattr(self, "__"+key, [data[i], data2[i]])
                             else:
                                 setattr(self, "__"+key, data[i])
@@ -770,7 +770,7 @@ class Conductivity():
         Writes the treated data to a file
         """
         if filename is None:
-            if self["H"] == "0.0" or self["symetrized"] is False:
+            if self["H"] == "0.0" or self["symmetrized"] is False:
                 filename = self["filename"].replace(".dat", "-treated.dat")
             else:
                 filename = self["filename"].replace(".dat", "-sym-treated.dat")
