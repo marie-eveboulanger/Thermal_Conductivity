@@ -111,6 +111,16 @@ class Conductivity():
 
         self.parameters = []
 
+        try:
+            self["force_kxy"] = kwargs["force_kxy"]
+            kwargs.pop("force_kxy")
+            if type(self["force_kxy"]) is bool:
+                pass
+            else:
+                raise TypeError("force_kxy must be True or False")
+        except KeyError:
+            self["force_kxy"] = False
+
         for key, value in kwargs.items():
             setattr(self, "__"+key, value)
             self.parameters.append(key)
@@ -128,11 +138,11 @@ class Conductivity():
                 setattr(self, "__"+key, value)
                 self.parameters.append(key)
 
-            self.__analyze()
             if getattr(self, "__H") != "0.0":
                 self.__symetrize()
             else:
                 pass
+            self.__analyze()
         else:
             pass
 
@@ -174,7 +184,7 @@ class Conductivity():
             alpha = self["w"]*self["t"]/self["L"]
             self["kxx"] = 5000*(self["I"])**2/self["dTx"]/alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
-            if self["H"] != "0.0":
+            if self["H"] != "0.0" or self["force_kxy"] is True:
                 S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
                 self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/1000/S
                 self["kxy"] = self["kxx"]*self["dTy"] / \
@@ -204,7 +214,7 @@ class Conductivity():
             self["dTx"] = dTx
             self["kxx"] = Q/self["dTx"]/alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
-            if self["H"] != "0.0":
+            if self["H"] != "0.0" or self["force_kxy"] is True:
                 S = seebeck_thermometry(T_av)
                 self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/S/1000
                 self["kxy"] = self["kxx"]*self["dTy"] / \
@@ -650,8 +660,8 @@ class Conductivity():
         remove = ["T_av", "T0", "Tp", "Tm", "I_fit", "T0_fit"]
 
         measures = [i for i in self.measures if i not in remove]
-        ref_meas = ["kxx", "kxx/T", "kxy", "kxy/T", "dTx",
-                    "dTx/T", "dTy/dTx", "Resistance", "Tp_Tm"]
+        ref_meas = ["kxx", "kxx/T", "kxy", "kxy/kxx", "dTx",
+                    "dTx/T", "dTy", "dTy/dTx", "Resistance", "Tp_Tm"]
         measures = [i for i in ref_meas if i in measures]
 
         fig, ax = self.__create_grid(measures)
