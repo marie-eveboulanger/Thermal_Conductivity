@@ -256,6 +256,11 @@ class Conductivity():
         # Magnetic field
         f = filename.split("/")[-1].split(".")
         H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
+        if "H" != "0.0" and self["symetrize"] is False:
+            if len(filename.split("--")) == 1:
+                pass
+            else:
+                H = "-"+H
         setattr(self, "__H", H)
         parameters.append("H")
 
@@ -282,18 +287,20 @@ class Conductivity():
                 if exist is True:
                     pass
                 else:
+                    filename3 = filename2
                     dates = self.__Dates(date)
                     for i in dates:
-                        filename2 = filename2.replace(date, i)
-                        exist = os.path.isfile(filename2)
+                        filename3 = filename2.replace(date, i)
+                        exist = os.path.isfile(filename3)
                         if exist is True:
+                            filename2 = filename3
                             break
                         else:
                             pass
                     if exist is False:
                         filename2 = filename
                     else:
-                        pass
+                        filename2 = filename3
             else:
                 filename2 = filename
                 filename = filename2.replace("--", "-")
@@ -301,18 +308,23 @@ class Conductivity():
                 if exist is True:
                     pass
                 else:
+                    filename3  = filename
                     dates = self.__Dates(date)
                     for i in dates:
-                        filename = filename.replace(date, i)
-                        exist = os.path.isfile(filename)
+                        filename3 = filename.replace(date, i)
+                        exist = os.path.isfile(filename3)
                         if exist is True:
+                            filename = filename3
                             break
                         else:
                             pass
                     if exist is False:
                         filename = filename2
                     else:
-                        pass
+                        filename = filename3
+
+            print(filename)
+            print(filename2)
 
             data = np.genfromtxt(filename, delimiter="\t").T
             data2 = np.genfromtxt(filename2, delimiter="\t").T
@@ -356,7 +368,7 @@ class Conductivity():
                 for key, values in self.__dict_raw.items():
                     for i in range(len(l)):
                         if l[i].strip() in values:
-                            if H != "0.0":
+                            if H != "0.0" and self["symetrize"] is True:
                                 setattr(self, "__"+key, [data[i], data2[i]])
                             else:
                                 setattr(self, "__"+key, data[i])
