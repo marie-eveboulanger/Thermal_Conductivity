@@ -37,6 +37,7 @@ class Conductivity():
 
     # Creation of a dictionnary to sort data
     __dict_measures = dict()
+    __dict_measures["T0"] = ["T0(K)","T0 (K)"]
     __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
     __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
     __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
@@ -109,10 +110,6 @@ class Conductivity():
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
         self.parameters = []
-        dict_geo = {"w": w, "t": t, "L": L}
-        for key, value in dict_geo.items():
-            setattr(self, "__"+key, value)
-            self.parameters.append(key)
 
         for key, value in kwargs.items():
             setattr(self, "__"+key, value)
@@ -125,10 +122,20 @@ class Conductivity():
 
         self.__read_file(filename)
 
-        if getattr(self, "__H") != "0.0":
-            self.__symetrize()
+        if self["filetype"] == "raw_data":
+            dict_geo = {"w": w, "t": t, "L": L}
+            for key, value in dict_geo.items():
+                setattr(self, "__"+key, value)
+                self.parameters.append(key)
 
-        self.__analyze()
+            self.__analyze()
+            if getattr(self, "__H") != "0.0":
+                self.__symetrize()
+            else:
+                pass
+        else:
+            pass
+
         self.__add_measure()
 
         return
@@ -305,10 +312,10 @@ class Conductivity():
                             pass
                         if len(raw_data) == 0:
                             check_treated = True
-                            self.__filetype = "treated"
+                            self["filetype"] = "treated"
                         else:
                             check_treated = False
-                            self.__filetype = "raw_data"
+                            self["filetype"] = "raw_data"
 
                 if check_treated is True:
                     for key, values in self.__dict_measures.items():
@@ -318,20 +325,20 @@ class Conductivity():
                                 measures.append(key)
                             else:
                                 pass
-                            if len(measures) == 0:
-                                raise Exception("No known measurements found")
-                            else:
-                                pass
+                    if len(measures) == 0:
+                        raise Exception("No known measurements found")
+                    else:
+                        pass
                 else:
                     pass
 
-                if self.__filetype == "raw_data":
+                if self["filetype"] == "raw_data":
                     self.datatype = "Raw"
                     if "dTabs_0" in raw_data:
                         self["probe"] = "VTI"
                     else:
                         self["probe"] = "Tallahasse"
-                elif self.__filetype == "treated":
+                elif self["filetype"] == "treated":
                     self.datatype = "Treated"
 
                 self.lines = lines
