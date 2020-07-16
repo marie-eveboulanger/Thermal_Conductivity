@@ -18,7 +18,7 @@ foo@bar:~$ pip install .
 ## Install a release
 Download the latest tar file and install using pip
 ```console
-foo@bar:~$ pip install path/to/ThermalConductivity.tar.gz
+foo@bar:~$ pip install path/to/ThermalConductivity-x.y.tar.gz
 ```
 
 # Which submodule to use?
