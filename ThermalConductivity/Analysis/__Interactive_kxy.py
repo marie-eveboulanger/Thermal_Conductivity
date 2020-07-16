@@ -328,6 +328,10 @@ class Conductivity():
                     else:
                         filename = filename3
 
+            if filename == filename2:
+                self["symetrize"] = False
+            else:
+                pass
             data = np.genfromtxt(filename, delimiter="\t").T
             data2 = np.genfromtxt(filename2, delimiter="\t").T
 
