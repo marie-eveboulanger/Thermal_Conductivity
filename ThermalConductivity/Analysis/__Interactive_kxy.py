@@ -141,23 +141,24 @@ class Conductivity():
         else:
             raise ValueError("Sign must be 1 or -1")
 
-        self.__read_file(filename)
+        if filename is not None:
+            self.__read_file(filename)
 
-        if self["filetype"] == "raw_data":
-            dict_geo = {"w": w, "t": t, "L": L}
-            for key, value in dict_geo.items():
-                setattr(self, "__"+key, value)
-                self.parameters.append(key)
+            if self["filetype"] == "raw_data":
+                dict_geo = {"w": w, "t": t, "L": L}
+                for key, value in dict_geo.items():
+                    setattr(self, "__"+key, value)
+                    self.parameters.append(key)
 
-            if getattr(self, "__H") != "0.0" and self["symetrize"] is True:
-                self.__Symetrize()
+                if getattr(self, "__H") != "0.0" and self["symetrize"] is True:
+                    self.__Symetrize()
+                else:
+                    pass
+                self.__Analyze()
             else:
                 pass
-            self.__Analyze()
-        else:
-            pass
 
-        self.__add_measure()
+            self.__add_measure()
 
         return
 
@@ -263,6 +264,10 @@ class Conductivity():
                 H = "-"+H
         setattr(self, "__H", H)
         parameters.append("H")
+        if H == "0.0":
+            self["symetrize"] = False
+        else:
+            pass
 
         # Sample name
         if hasattr(self, "__sample") is False:
@@ -308,7 +313,7 @@ class Conductivity():
                 if exist is True:
                     pass
                 else:
-                    filename3  = filename
+                    filename3 = filename
                     dates = self.__Dates(date)
                     for i in dates:
                         filename3 = filename.replace(date, i)
@@ -322,9 +327,6 @@ class Conductivity():
                         filename = filename2
                     else:
                         filename = filename3
-
-            print(filename)
-            print(filename2)
 
             data = np.genfromtxt(filename, delimiter="\t").T
             data2 = np.genfromtxt(filename2, delimiter="\t").T
@@ -764,9 +766,12 @@ class Conductivity():
         Writes the treated data to a file
         """
         if filename is None:
-            filename = self["filename"].replace(".dat", "_treated.dat")
+            if self["H"] == "0.0" or self["symetrized"] is False:
+                filename = self["filename"].replace(".dat", "-treated.dat")
+            else:
+                filename = self["filename"].replace(".dat", "-sym-treated.dat")
         else:
-            pass
+            filename = os.path.abspath(filename)
 
         parameters1 = ["sample", "date", "mount", "H"]
         parameters2 = ["w", "t", "L"]
@@ -900,16 +905,29 @@ class Conductivity():
         if type(key) is str:
             return getattr(self, "__"+key)
         else:
-            M = Measurement()
+            C = Conductivity()
+
+            for i in self.raw_data:
+                setattr(C, "__"+i, getattr(self, "__"+i)[key])
+
             for i in self.measures:
-                setattr(M, "__"+i, getattr(self, "__"+i)[key])
-
+                if i != "Tp_Tm":
+                    setattr(C, "__"+i, getattr(self, "__"+i)[key])
+                else:
+                    setattr(C, "__"+i, None)
             for i in self.parameters:
-                setattr(M, "__"+i, getattr(self, "__"+i))
+                setattr(C, "__"+i, getattr(self, "__"+i))
 
-            M["measures"] = self.measures
-            M["parameters"] = self.parameters
-            return M
+            misc = self.__dict__.keys()
+            for k in misc:
+                if hasattr(C, k) is True:
+                    pass
+                else:
+                    setattr(C, k, getattr(self, k))
+
+            C.measures = self.measures
+            C.parameters = self.parameters
+            return C
 
     def __setitem__(self, key, value):
         if type(key) is str:

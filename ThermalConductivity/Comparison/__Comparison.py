@@ -183,13 +183,16 @@ class Measurement():
         else:
             M = Measurement()
             for i in self.measures:
-                setattr(M, "__"+i, getattr(self, "__"+i)[key])
+                if i != "Tp_Tm":
+                    setattr(M, "__"+i, getattr(self, "__"+i)[key])
+                else:
+                    setattr(M, "__"+i, None)
 
             for i in self.parameters:
                 setattr(M, "__"+i, getattr(self, "__"+i))
 
-            M["measures"] = self.measures
-            M["parameters"] = self.parameters
+            M.measures = self.measures
+            M.parameters = self.parameters
             return M
 
     def __setitem__(self, key, value):
