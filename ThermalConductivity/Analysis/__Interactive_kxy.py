@@ -15,9 +15,9 @@ import os
 import datetime
 import numpy as np
 import numpy.polynomial.polynomial as npp
-import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from ThermalConductivity.Analysis import Functions as F
 from ThermalConductivity.Thermometry import seebeck_thermometry
 
 ################################################################################
@@ -182,26 +182,42 @@ class Conductivity():
     def __Analyze(self):
         # Probe Tallahasse
         if self["probe"] == "Tallahasse":
-            # Polyfit of R+ and R-
-            Cp = npp.polyfit(np.log(self["R+_0"]), np.log(self["T0"]), 8)
-            Cm = npp.polyfit(np.log(self["R-_0"]), np.log(self["T0"]), 8)
+            # Cut the uncalibrated points
             index = np.where(self["R+_Q"] < self["R+_0"][-1])
             for i in self.raw_data:
                 self[i] = np.delete(self[i], index)
             # Compute useful stuff
-            self["Tp"] = np.exp(npp.polyval(np.log(self["R+_Q"]), Cp))
-            self["Tm"] = np.exp(npp.polyval(np.log(self["R-_Q"]), Cm))
-            self["dTx"] = self["Tp"]-self["Tm"]
-            self["T_av"] = 0.5*(self["Tp"]+self["Tm"])
-            alpha = self["w"]*self["t"]/self["L"]
-            self["kxx"] = 5000*(self["I"])**2/self["dTx"]/alpha
+            # Get I and T0
+            I = self["I"]
+            T0 = self["T0"]
+
+            # Compute T+ and T- 
+            Tp = F.tallahassee_temp(self["R+_0"], self["R+_Q"], T0)
+            Tm = F.tallahassee_temp(self["R-_0"], self["R-_Q"], T0)
+
+            # Compute T_av dTx and kxx
+            T_av = 0.5*(Tp+Tm)
+            dTx = (Tp-Tm)
+            kxx = F.compute_kxx(I, dTx, self["w"], self["t"], self["L"])
+
+            # Store values in self
+            self["kxx"] = kxx
+            self["dTx"] = dTx
+            self["T_av"] = T_av
+            self["Tp"] = Tp
+            self["Tm"] = Tm
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+
+            # Compute the transverse stuff
             if self["H"] != "0.0" or self["force_kxy"] is True:
-                S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
-                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/1000/S
-                self["kxy"] = self["kxx"]*self["dTy"] / \
-                    self["dTx"]*self["L"]/self["w"]
+                Tr = T0+T_av/2
+                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy *= self["sign"]
+                kxy = compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
+                self["dTy"] = dTy
+                self["kxy"] = kxy
                 self.measures += ["dTy", "kxy"]
+
         # VTI
         elif self["probe"] == "VTI":
             Q = 5000*self["I"]**2
