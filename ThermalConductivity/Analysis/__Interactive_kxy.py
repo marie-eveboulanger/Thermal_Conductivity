@@ -640,7 +640,7 @@ class Conductivity():
         if len(fig.axes) == 1:
             fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
             plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="baseline", ha="left")
+                        2, va="bottom", ha="left")
         else:
             pass
 
