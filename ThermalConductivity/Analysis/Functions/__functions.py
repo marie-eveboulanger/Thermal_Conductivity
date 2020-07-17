@@ -125,21 +125,21 @@ def vti_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0):
     """
 
     # First iteration
-    dT_abs = compute_thermocouple(dT_abs_off, dT_abs_on, T0)
-    dTx = compute_thermocouple(dTx_off, dTx_on, T0)
-    T_minus = T0+dT_abs
-    T_plus = T_minus+dTx
-    T_av = 0.5*(T_minus+T_plus)
+    dT_abs = 0*T0
+    dTx = 0*T0
+    T_minus = 0*T0
+    T_plus = 0*T0
+    T_av = 0*T0
     previous_T_av = T_av+1000
 
-    while abs(previous_T_av-T_av) > 1e-10:
-        previous = T_av
+    while abs(previous_T_av.sum()-T_av.sum()) > 1e-10:
+        previous_T_av = T_av
         T_ref_1 = T0+dT_abs/2
         T_ref_2 = T_minus+dTx/2
         dT_abs = compute_thermocouple(dT_abs_off, dT_abs_on, T_ref_1)
         dTx = compute_thermocouple(dTx_off, dTx_on, T_ref_2)
         T_minus = T0+dT_abs
         T_plus = T_minus+dTx
-        T_av = 0.5*(T_minus+T_plus)
+        T_av = T_minus+dTx/2
 
     return T_av, dTx, T_plus, T_minus
