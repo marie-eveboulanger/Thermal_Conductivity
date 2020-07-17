@@ -18,8 +18,8 @@ def get_parameters_for_measures():
     dict_measures["I_fit"] = ["I_fit"]
     dict_measures["T0_fit"] = ["T0_fit"]
 
-
     return dict_measures
+
 
 def get_raw_data():
     dict_raw = dict()
@@ -38,6 +38,7 @@ def get_raw_data():
 
     return dict_raw
 
+
 def get_parameters():
     # Creation of a dictionnary to sort other info
     dict_parameters = dict()
@@ -50,6 +51,7 @@ def get_parameters():
     dict_parameters["date"] = ["Date", "date"]
 
     return dict_parameters
+
 
 def get_figure_axes():
     # Creation of an internal dictionnary used to match measurements to their
@@ -76,6 +78,7 @@ def get_figure_axes():
 
     return dict_axis
 
+
 def get_figure_labels():
     # Same principle then before but for curve labels
     dict_labels = dict()
@@ -84,5 +87,3 @@ def get_figure_labels():
     dict_labels["date"] = r"%s"
 
     return dict_labels
-
-

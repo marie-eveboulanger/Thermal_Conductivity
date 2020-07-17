@@ -19,8 +19,14 @@ import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Thermometry import seebeck_thermometry
-from .parameters_labels import get_parameters_for_measures, get_raw_data, get_parameters, get_figure_axes, get_figure_labels
- 
+from .parameters_labels import (
+    get_parameters_for_measures,
+    get_raw_data,
+    get_parameters,
+    get_figure_axes,
+    get_figure_labels,
+)
+
 ################################################################################
 #                          ____ _        _    ____ ____                        #
 #                         / ___| |      / \  / ___/ ___|                       #
@@ -30,7 +36,7 @@ from .parameters_labels import get_parameters_for_measures, get_raw_data, get_pa
 ################################################################################
 
 
-class Conductivity():
+class Conductivity:
     """
     This is the main class of the program. It contains all the
     data and other information about the sample. Also contains
@@ -43,7 +49,6 @@ class Conductivity():
     __dict_parameters = get_parameters()
     __dict_axis = get_figure_axes()
     __figure_labels = get_figure_labels()
-
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
@@ -70,7 +75,7 @@ class Conductivity():
             self["symmetrize"] = True
 
         for key, value in kwargs.items():
-            setattr(self, "__"+key, value)
+            setattr(self, "__" + key, value)
             self.parameters.append(key)
 
         if sign in [1, -1]:
@@ -84,7 +89,7 @@ class Conductivity():
             if self["filetype"] == "raw_data":
                 dict_geo = {"w": w, "t": t, "L": L}
                 for key, value in dict_geo.items():
-                    setattr(self, "__"+key, value)
+                    setattr(self, "__" + key, value)
                     self.parameters.append(key)
 
                 if getattr(self, "__H") != "0.0" and self["symmetrize"] is True:
@@ -100,18 +105,28 @@ class Conductivity():
         return
 
     def __Symmetrize(self):
-        sym = ["T0", "I", "R+_0", "R+_Q", "R-_0", "R-_Q",
-               "dTabs_0", "dTabs_Q", "dTx_0", "dTx_Q"]
+        sym = [
+            "T0",
+            "I",
+            "R+_0",
+            "R+_Q",
+            "R-_0",
+            "R-_Q",
+            "dTabs_0",
+            "dTabs_Q",
+            "dTx_0",
+            "dTx_Q",
+        ]
         anti_sym = ["dTy_0", "dTy_Q"]
 
         for i in sym:
             if i in self.raw_data:
-                self[i] = 0.5*(self[i][0]+self[i][1])
+                self[i] = 0.5 * (self[i][0] + self[i][1])
             else:
                 pass
         for i in anti_sym:
             if i in self.raw_data:
-                self[i] = 0.5*(self[i][0]-self[i][1])
+                self[i] = 0.5 * (self[i][0] - self[i][1])
             else:
                 pass
         return
@@ -128,46 +143,48 @@ class Conductivity():
             # Compute useful stuff
             self["Tp"] = np.exp(npp.polyval(np.log(self["R+_Q"]), Cp))
             self["Tm"] = np.exp(npp.polyval(np.log(self["R-_Q"]), Cm))
-            self["dTx"] = self["Tp"]-self["Tm"]
-            self["T_av"] = 0.5*(self["Tp"]+self["Tm"])
-            alpha = self["w"]*self["t"]/self["L"]
-            self["kxx"] = 5000*(self["I"])**2/self["dTx"]/alpha
+            self["dTx"] = self["Tp"] - self["Tm"]
+            self["T_av"] = 0.5 * (self["Tp"] + self["Tm"])
+            alpha = self["w"] * self["t"] / self["L"]
+            self["kxx"] = 5000 * (self["I"]) ** 2 / self["dTx"] / alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
             if self["H"] != "0.0" or self["force_kxy"] is True:
-                S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
-                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/1000/S
-                self["kxy"] = self["kxx"]*self["dTy"] / \
-                    self["dTx"]*self["L"]/self["w"]
+                S = seebeck_thermometry((self["T_av"] + self["T0"]) / 2)
+                self["dTy"] = self["sign"] * (self["dTy_Q"] - self["dTy_0"]) / 1000 / S
+                self["kxy"] = (
+                    self["kxx"] * self["dTy"] / self["dTx"] * self["L"] / self["w"]
+                )
                 self.measures += ["dTy", "kxy"]
         # VTI
         elif self["probe"] == "VTI":
-            Q = 5000*self["I"]**2
-            alpha = self["w"]*self["t"]/self["L"]
-            T_av = 0*Q
-            dT_abs = 0*Q
-            dTx = 0*Q
-            prev = T_av+1000
+            Q = 5000 * self["I"] ** 2
+            alpha = self["w"] * self["t"] / self["L"]
+            T_av = 0 * Q
+            dT_abs = 0 * Q
+            dTx = 0 * Q
+            prev = T_av + 1000
             # Loop to converge towards actual temperatures
-            while abs(prev.sum()-T_av.sum()) > 1e-10:
+            while abs(prev.sum() - T_av.sum()) > 1e-10:
                 prev = T_av
-                S1 = seebeck_thermometry((dT_abs/2+self["T0"]))
-                S2 = seebeck_thermometry(self["T0"]+dT_abs+dTx/2)
-                dT_abs = abs(self["dTabs_Q"]-self["dTabs_0"])/S1/1000
-                dTx = (self["dTx_Q"]-self["dTx_0"])/S2/1000
-                Tm = dT_abs+self["T0"]
-                Tp = Tm+dTx
-                T_av = Tm+dTx/2
+                S1 = seebeck_thermometry((dT_abs / 2 + self["T0"]))
+                S2 = seebeck_thermometry(self["T0"] + dT_abs + dTx / 2)
+                dT_abs = abs(self["dTabs_Q"] - self["dTabs_0"]) / S1 / 1000
+                dTx = (self["dTx_Q"] - self["dTx_0"]) / S2 / 1000
+                Tm = dT_abs + self["T0"]
+                Tp = Tm + dTx
+                T_av = Tm + dTx / 2
             self["T_av"] = T_av
             self["Tp"] = Tp
             self["Tm"] = Tm
             self["dTx"] = dTx
-            self["kxx"] = Q/self["dTx"]/alpha
+            self["kxx"] = Q / self["dTx"] / alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 S = seebeck_thermometry(T_av)
-                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/S/1000
-                self["kxy"] = self["kxx"]*self["dTy"] / \
-                    self["dTx"]*self["L"]/self["w"]
+                self["dTy"] = self["sign"] * (self["dTy_Q"] - self["dTy_0"]) / S / 1000
+                self["kxy"] = (
+                    self["kxx"] * self["dTy"] / self["dTx"] * self["L"] / self["w"]
+                )
                 self.measures += ["dTy", "kxy"]
 
         return
@@ -198,7 +215,7 @@ class Conductivity():
             if len(filename.split("--")) == 1:
                 pass
             else:
-                H = "-"+H
+                H = "-" + H
         setattr(self, "__H", H)
         parameters.append("H")
         if H == "0.0":
@@ -279,8 +296,7 @@ class Conductivity():
             for i, line in enumerate(f):
                 l = line.split(" ")
                 if l[0] != "#":
-                    numbers = ["0", "1", "2", "3",
-                               "4", "5", "6", "7", "8", "9"]
+                    numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
                     if l[0][0] in numbers:
                         break
                     else:
@@ -300,8 +316,8 @@ class Conductivity():
             if len(l) < 6:
                 for key, values in self.__dict_parameters.items():
                     if l[0] in values:
-                        if hasattr(self, "__"+key) is False:
-                            setattr(self, "__"+key, l[-1])
+                        if hasattr(self, "__" + key) is False:
+                            setattr(self, "__" + key, l[-1])
                             parameters.append(key)
                         else:
                             pass
@@ -312,9 +328,9 @@ class Conductivity():
                     for i in range(len(l)):
                         if l[i].strip() in values:
                             if H != "0.0" and self["symmetrize"] is True:
-                                setattr(self, "__"+key, [data[i], data2[i]])
+                                setattr(self, "__" + key, [data[i], data2[i]])
                             else:
-                                setattr(self, "__"+key, data[i])
+                                setattr(self, "__" + key, data[i])
                             raw_data.append(key)
                         else:
                             pass
@@ -329,7 +345,7 @@ class Conductivity():
                     for key, values in self.__dict_measures.items():
                         for i in range(len(l)):
                             if l[i].strip() in values:
-                                setattr(self, "__"+key, data[i])
+                                setattr(self, "__" + key, data[i])
                                 measures.append(key)
                             else:
                                 pass
@@ -358,38 +374,37 @@ class Conductivity():
 
     def __Dates(self, date):
         d = datetime.date(*tuple([int(i) for i in date.split("-")]))
-        dates = ["%s" % (d+datetime.timedelta(i))
-                 for i in range(-2, 3) if i != 0]
+        dates = ["%s" % (d + datetime.timedelta(i)) for i in range(-2, 3) if i != 0]
         return dates
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
             self.measures.append("kxx/T")
-            self["kxx/T"] = self["kxx"]/self["T_av"]
+            self["kxx/T"] = self["kxx"] / self["T_av"]
         else:
             pass
 
         if "T_av" and "dTx" in self.measures:
             self.measures.append("dTx/T")
-            self["dTx/T"] = self["dTx"]/self["T_av"]*100
+            self["dTx/T"] = self["dTx"] / self["T_av"] * 100
         else:
             pass
 
         if "T_av" and "T0" and "dTx" in self.measures:
             self.measures.append("Resistance")
-            self["Resistance"] = (self["T_av"]-self["T0"])/self["dTx"]
+            self["Resistance"] = (self["T_av"] - self["T0"]) / self["dTx"]
         else:
             pass
 
         if "dTx" and "dTy" in self.measures:
             self.measures.append("dTy/dTx")
-            self["dTy/dTx"] = self["dTy"]/self["dTx"]*100
+            self["dTy/dTx"] = self["dTy"] / self["dTx"] * 100
         else:
             pass
 
         if "kxx" and "kxy" in self.measures:
             self.measures.append("kxy/kxx")
-            self["kxy/kxx"] = self["kxy"]/self["kxx"]*100
+            self["kxy/kxx"] = self["kxy"] / self["kxx"] * 100
         else:
             pass
 
@@ -403,25 +418,25 @@ class Conductivity():
         n = len(measures)
 
         if n % 2 == 0:
-            N = n//2
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+            N = n // 2
+            fig, ax = plt.subplots(N, 2, figsize=(16, N * 4.5))
             axes = ax.flatten().tolist()
         else:
-            N = n//2+1
+            N = n // 2 + 1
             s = (N, 4)
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+            fig, ax = plt.subplots(N, 2, figsize=(16, N * 4.5))
             axes = []
             loc = (0, 0)
             for i in range(n):
 
                 if i != 0:
-                    if i != n-1:
+                    if i != n - 1:
                         if int(loc[1]) == 0:
                             loc = (loc[0], 2)
                         elif int(loc[1]) == 2:
-                            loc = (loc[0]+1, 0)
+                            loc = (loc[0] + 1, 0)
                     else:
-                        loc = (N-1, 1)
+                        loc = (N - 1, 1)
                 else:
                     pass
                 axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
@@ -538,25 +553,34 @@ class Conductivity():
         # Draws the curves
         if key == "Tp_Tm":
             p = [self[parameter] for parameter in parameters]
-            ax.plot(self[x_axis], self["Tp"], label=r"T$^+$ "+label %
-                    tuple(p), *args, **kwargs)
-            ax.plot(self[x_axis], self["Tm"], label=r"T$^-$ "+label %
-                    tuple(p), *args, **kwargs)
+            ax.plot(
+                self[x_axis],
+                self["Tp"],
+                label=r"T$^+$ " + label % tuple(p),
+                *args,
+                **kwargs
+            )
+            ax.plot(
+                self[x_axis],
+                self["Tm"],
+                label=r"T$^-$ " + label % tuple(p),
+                *args,
+                **kwargs
+            )
             ax.legend(fontsize=label_font)
         else:
             p = [self[parameter] for parameter in parameters]
             x_data = self[x_axis]
             if key in ["kxy", "kxy/T"]:
-                y_data = 10*self[key]
+                y_data = 10 * self[key]
             else:
                 y_data = self[key]
-            ax.plot(self[x_axis], self[key], label=label %
-                    tuple(p), *args, **kwargs)
-            if self[key].min()*self[key].max() < 0 and zero_line == 0:
-                ax.plot(self[x_axis], 0*self[key], "--k", lw=2)
+            ax.plot(self[x_axis], self[key], label=label % tuple(p), *args, **kwargs)
+            if self[key].min() * self[key].max() < 0 and zero_line == 0:
+                ax.plot(self[x_axis], 0 * self[key], "--k", lw=2)
                 zero_line += 1
 
-            elif self[key].min()*self[key].max() > 1 and zero_line == 0:
+            elif self[key].min() * self[key].max() > 1 and zero_line == 0:
                 if self[key].max() < 0:
                     y_axis = "Negative"
                 else:
@@ -565,8 +589,7 @@ class Conductivity():
         # Makes it pretty
         ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
         ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
-        ax.tick_params(axis="both", which="both", direction="in",
-                       top=True, right=True)
+        ax.tick_params(axis="both", which="both", direction="in", top=True, right=True)
 
         if label_size != 0:
             ax.legend(fontsize=label_font)
@@ -576,8 +599,9 @@ class Conductivity():
         # If sample is the same for all measurements print it on the figure
         if len(fig.axes) == 1:
             fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
-            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="baseline", ha="left")
+            plt.figtext(
+                0.05, 0.005, sample, fontsize=axis_fs - 2, va="baseline", ha="left"
+            )
         else:
             pass
 
@@ -631,13 +655,13 @@ class Conductivity():
                 # with the data
                 if os.path.isdir(directory) is False:
                     answer = input(
-                        "Do you want to create directory (Y/n): %s" % directory)
+                        "Do you want to create directory (Y/n): %s" % directory
+                    )
                     if answer in ["Y", "y", "", "yes"]:
                         os.makedirs(directory)
                     else:
                         filename = self["filename"].replace(".dat", ".pdf")
-                        print("Figures will be saved with data at %s" %
-                              filename)
+                        print("Figures will be saved with data at %s" % filename)
             else:
                 filename = None
 
@@ -664,8 +688,18 @@ class Conductivity():
         remove = ["T_av", "T0", "Tp", "Tm", "I_fit", "T0_fit"]
 
         measures = [i for i in self.measures if i not in remove]
-        ref_meas = ["kxx", "kxx/T", "kxy", "kxy/kxx", "dTx",
-                    "dTx/T", "dTy", "dTy/dTx", "Resistance", "Tp_Tm"]
+        ref_meas = [
+            "kxx",
+            "kxx/T",
+            "kxy",
+            "kxy/kxx",
+            "dTx",
+            "dTx/T",
+            "dTy",
+            "dTy/dTx",
+            "Resistance",
+            "Tp_Tm",
+        ]
         measures = [i for i in ref_meas if i in measures]
 
         fig, ax = self.__create_grid(measures)
@@ -682,8 +716,7 @@ class Conductivity():
             filename = None
 
         for i in range(len(measures)):
-            self.Plot(measures[i], *args, show=None,
-                      fig=fig, ax=ax[i], **kwargs)
+            self.Plot(measures[i], *args, show=None, fig=fig, ax=ax[i], **kwargs)
 
         if hasattr(self, "__sample") is True:
             plt.suptitle(self["sample"], fontsize=22)
@@ -717,8 +750,16 @@ class Conductivity():
         parameters1 = ["sample", "date", "mount", "H"]
         parameters2 = ["w", "t", "L"]
         measures = ["T_av", "T0", "Tp", "Tm", "dTx", "kxx", "dTy", "kxy"]
-        columns = ["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
-                   "dTx(K)", "kxx(W/Km)", "dTy(K)", "kxy(W/Km)"]
+        columns = [
+            "T_av(K)",
+            "T0(K)",
+            "T+(K)",
+            "T-(K)",
+            "dTx(K)",
+            "kxx(W/Km)",
+            "dTy(K)",
+            "kxy(W/Km)",
+        ]
         if self["H"] == "0.0":
             measures = measures[0:6]
             columns = columns[0:6]
@@ -727,15 +768,12 @@ class Conductivity():
 
         columns = "\t".join(columns)
 
-        comments1 = "\n".join(["%s\t=\t%s" % (i, self[i])
-                               for i in parameters1])
-        comments2 = "\n".join(["%s\t=\t%1.3e" % (i, self[i])
-                               for i in parameters2])
-        header = comments1+"\n"+comments2+"\n"+columns
+        comments1 = "\n".join(["%s\t=\t%s" % (i, self[i]) for i in parameters1])
+        comments2 = "\n".join(["%s\t=\t%1.3e" % (i, self[i]) for i in parameters2])
+        header = comments1 + "\n" + comments2 + "\n" + columns
         data = np.array([self[i] for i in measures]).T
 
-        np.savetxt(filename, data, delimiter="\t",
-                   header=header, fmt="%.6e")
+        np.savetxt(filename, data, delimiter="\t", header=header, fmt="%.6e")
 
     def Current(self, _min, _max, deg=5, T_max=100, N=100, *args, **kwargs):
         """
@@ -761,16 +799,16 @@ class Conductivity():
         name = "_".join([self["sample"].replace(" ", "_"), "dTovT", rnge])
         datafile = os.path.join(datafile, name)
         n = self["T_av"].shape[0]
-        dT_T = np.linspace(_min/100, _max/100, n)
-        alpha = self["w"]*self["t"]/self["L"]
-        I = np.sqrt(self["kxx"]*alpha*self["T_av"]*dT_T/5000)
+        dT_T = np.linspace(_min / 100, _max / 100, n)
+        alpha = self["w"] * self["t"] / self["L"]
+        I = np.sqrt(self["kxx"] * alpha * self["T_av"] * dT_T / 5000)
         coeff_I = np.polyfit(self["T0"], I, deg)
         poly_func = np.poly1d(coeff_I)
         T0 = np.linspace(0, T_max, N)
         I_fit = poly_func(T0)
 
         self["T0_fit"] = T0
-        self["I_fit"] = I_fit*1000
+        self["I_fit"] = I_fit * 1000
         self["coeff_I"] = coeff_I
         self.measures += ["T0_fit", "I_fit"]
 
@@ -793,12 +831,10 @@ class Conductivity():
         except KeyError:
             filename = None
 
-        label = r"$\Delta$ T / T from %1.2f%s to %1.2f%s" % (
-            _min, "%", _max, "%")
+        label = r"$\Delta$ T / T from %1.2f%s to %1.2f%s" % (_min, "%", _max, "%")
 
         fig, ax = self.Plot("I_fit", x_axis="T0_fit", show=None, parameters=[])
-        plt.figtext(1-0.005, 0.005, label, fontsize=14,
-                    va="baseline", ha="right")
+        plt.figtext(1 - 0.005, 0.005, label, fontsize=14, va="baseline", ha="right")
 
         if show is True:
             plt.show()
@@ -822,8 +858,7 @@ class Conductivity():
             if os.path.isfile(datafile) is False:
                 write = True
             else:
-                answer = input(
-                    "File %s already exists, overwrite? (y/N)" % datafile)
+                answer = input("File %s already exists, overwrite? (y/N)" % datafile)
                 if answer in ["Y", "y", "O", "o", "yes", "Yes", "oui", "Oui"]:
                     write = True
                     print("File overwritten")
@@ -835,8 +870,9 @@ class Conductivity():
             degrees = np.array([i for i in range(coeff_I.shape[0])])
             data = np.array([degrees, coeff_I[::-1]]).T
             header = "Current function coefficients\norder\tcoeff"
-            np.savetxt(datafile, data, delimiter="\t",
-                       header=header, fmt=["%i", "%.18e"])
+            np.savetxt(
+                datafile, data, delimiter="\t", header=header, fmt=["%i", "%.18e"]
+            )
         else:
             pass
 
@@ -844,20 +880,20 @@ class Conductivity():
 
     def __getitem__(self, key):
         if type(key) is str:
-            return getattr(self, "__"+key)
+            return getattr(self, "__" + key)
         else:
             C = Conductivity()
 
             for i in self.raw_data:
-                setattr(C, "__"+i, getattr(self, "__"+i)[key])
+                setattr(C, "__" + i, getattr(self, "__" + i)[key])
 
             for i in self.measures:
                 if i != "Tp_Tm":
-                    setattr(C, "__"+i, getattr(self, "__"+i)[key])
+                    setattr(C, "__" + i, getattr(self, "__" + i)[key])
                 else:
-                    setattr(C, "__"+i, None)
+                    setattr(C, "__" + i, None)
             for i in self.parameters:
-                setattr(C, "__"+i, getattr(self, "__"+i))
+                setattr(C, "__" + i, getattr(self, "__" + i))
 
             misc = self.__dict__.keys()
             for k in misc:
@@ -872,14 +908,15 @@ class Conductivity():
 
     def __setitem__(self, key, value):
         if type(key) is str:
-            setattr(self, "__"+key, value)
+            setattr(self, "__" + key, value)
         else:
             pass
         return
 
     def __delitem__(self, key):
-        delattr(self, "__"+key)
+        delattr(self, "__" + key)
         return
+
 
 ################################################################################
 #                       ____   ____ ____  ___ ____ _____                       #
