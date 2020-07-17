@@ -106,7 +106,7 @@ def compute_thermocouple(dT_heat_off, dT_heat_on, T_reference, gain=1000):
     return delta_T
 
 
-def VTI_Calibration_Loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0):
+def vti_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0):
     """
     Computes a calibration loop for the VTI's thermocouple
 
