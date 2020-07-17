@@ -19,7 +19,8 @@ import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Thermometry import seebeck_thermometry
-
+from .parameters_labels import get_parameters_for_measures, get_raw_data, get_parameters, get_figure_axes, get_figure_labels
+ 
 ################################################################################
 #                          ____ _        _    ____ ____                        #
 #                         / ___| |      / \  / ___/ ___|                       #
@@ -37,76 +38,12 @@ class Conductivity():
     """
 
     # Creation of a dictionnary to sort data
-    __dict_measures = dict()
-    __dict_measures["T0"] = ["T0(K)", "T0 (K)"]
-    __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
-    __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
-    __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
-    __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
-    __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
-    __dict_measures["kxy"] = ["kxy(W/mk)", "k_xy(W/Km)", "Kxy (W / K m)"]
-    __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
-    __dict_measures["I"] = ["I(A)", "I (A)"]
-    __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
-    __dict_measures["kxx/T"] = ["kxx/T"]
-    __dict_measures["Resistance"] = ["Resistance"]
-    __dict_measures["dTx/T"] = ["dTx/T"]
-    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
-    __dict_measures["I_fit"] = ["I_fit"]
-    __dict_measures["T0_fit"] = ["T0_fit"]
+    __dict_measures = get_parameters_for_measures()
+    __dict_raw = get_raw_data()
+    __dict_parameters = get_parameters()
+    __dict_axis = get_figure_axes()
+    __figure_labels = get_figure_labels()
 
-    # Creation of a dictionnary to sort raw data
-    __dict_raw = dict()
-    __dict_raw["T0"] = ["#T0(K)"]
-    __dict_raw["I"] = ["I(A)"]
-    __dict_raw["R+_0"] = ["R+_0(V)"]
-    __dict_raw["R+_Q"] = ["R+_Q(V)"]
-    __dict_raw["R-_0"] = ["R-_0(V)"]
-    __dict_raw["R-_Q"] = ["R-_Q(V)"]
-    __dict_raw["dTy_0"] = ["dTy_0(V)"]
-    __dict_raw["dTy_Q"] = ["dTy_Q(V)"]
-    __dict_raw["dTabs_0"] = ["Tabs_0(V)"]
-    __dict_raw["dTabs_Q"] = ["Tabs_Q(V)"]
-    __dict_raw["dTx_0"] = ["dTx_0(V)"]
-    __dict_raw["dTx_Q"] = ["dTx_Q(V)"]
-
-    # Creation of a dictionnary to sort other info
-    __dict_parameters = dict()
-    __dict_parameters["H"] = ["H"]
-    __dict_parameters["w"] = ["w"]
-    __dict_parameters["t"] = ["t"]
-    __dict_parameters["L"] = ["L"]
-    __dict_parameters["mount"] = ["mount"]
-    __dict_parameters["sample"] = ["Sample", "sample"]
-    __dict_parameters["date"] = ["Date", "date"]
-
-    # Creation of an internal dictionnary used to match measurements to their
-    # respective axis titles to make the figures prettier.
-    __list_measures = list()
-    __list_parameters = list()
-    __dict_axis = dict()
-    __dict_axis["T_av"] = r"T ( K )"
-    __dict_axis["T0"] = r"$T_0$ ( K )"
-    __dict_axis["Tp"] = __dict_axis["T_av"]
-    __dict_axis["Tm"] = __dict_axis["T_av"]
-    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
-    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
-    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
-    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
-    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
-    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
-    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
-    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
-    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
-    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
-    __dict_axis["T0_fit"] = __dict_axis["T0"]
-    __dict_axis["I_fit"] = r"I ( mA )"
-
-    # Same principle then before but for curve labels
-    __dict_labels = dict()
-    __dict_labels["H"] = r"H = %sT"
-    __dict_labels["sample"] = r"Sample: %s"
-    __dict_labels["date"] = r"%s"
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
@@ -559,7 +496,7 @@ class Conductivity():
         labels = []
         for parameter in parameters:
             try:
-                label = self.__dict_labels[parameter]
+                label = self.__figure_labels[parameter]
             except KeyError:
                 label = "%s"
             labels.append(label)
