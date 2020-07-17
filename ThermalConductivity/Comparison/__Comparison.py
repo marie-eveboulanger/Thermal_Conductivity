@@ -616,7 +616,7 @@ class Data_Set():
 
         # If sample is the same for all measurements print it on the figure
         if len(fig.axes) == 1:
-            fig.tight_layout()
+            fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
             plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
                         2, va="baseline", ha="left")
         else:
