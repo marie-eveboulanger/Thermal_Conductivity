@@ -1,7 +1,19 @@
 # Thermal Conductivity
 Analysis code for thermal conductivity measurements. Used to analyze de data, generate current functions plots etc.
 
+Works on Windows, macOS and Linux.
+
 # Installation
+## Before installing
+- Make sure Python and pip are installed on your system
+- Ipython is not required but it's use is strongly recommended
+
+## Installing Ipython (Optional)
+
+```console
+foo@bar:~$ pip install ipython
+```
+
 ## Build from source
 Go to your build directory (Ex: Downloads) and git clone the repository:
 ```console
@@ -15,8 +27,8 @@ foo@bar:~$ cd Thermal_Conductivity
 foo@bar:~$ pip install .
 ```
 
-## Install a release
-Download the latest tar file and install using pip
+## Install from a release
+Download the latest ThermalConductivity archive from the release section and install using pip
 ```console
 foo@bar:~$ pip install path/to/ThermalConductivity-x.y.tar.gz
 ```
