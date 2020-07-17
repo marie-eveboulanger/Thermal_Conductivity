@@ -163,8 +163,17 @@ class Conductivity():
         return
 
     def __Symmetrize(self):
-        sym = ["T0", "I", "R+_0", "R+_Q", "R-_0", "R-_Q",
-               "dTabs_0", "dTabs_Q", "dTx_0", "dTx_Q"]
+        sym = ["T0",
+               "I",
+               "R+_0",
+               "R+_Q",
+               "R-_0",
+               "R-_Q",
+               "dTabs_0",
+               "dTabs_Q",
+               "dTx_0",
+               "dTx_Q"]
+
         anti_sym = ["dTy_0", "dTy_Q"]
 
         for i in sym:
@@ -186,12 +195,13 @@ class Conductivity():
             index = np.where(self["R+_Q"] < self["R+_0"][-1])
             for i in self.raw_data:
                 self[i] = np.delete(self[i], index)
+
             # Compute useful stuff
             # Get I and T0
             I = self["I"]
             T0 = self["T0"]
 
-            # Compute T+ and T- 
+            # Compute T+ and T-
             Tp = F.tallahassee_temp(self["R+_0"], self["R+_Q"], T0)
             Tm = F.tallahassee_temp(self["R-_0"], self["R-_Q"], T0)
 
@@ -210,43 +220,52 @@ class Conductivity():
 
             # Compute the transverse stuff
             if self["H"] != "0.0" or self["force_kxy"] is True:
-                Tr = T0+T_av/2
+                # Compute dTy
+                Tr = T0+T_av/2  # Reference tempereature for the thermocouple
                 dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
-                dTy *= self["sign"]
+                dTy *= self["sign"]  # Apply the sign
+
+                # Compute kxy
                 kxy = compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
+
+                # Store in self
                 self["dTy"] = dTy
                 self["kxy"] = kxy
                 self.measures += ["dTy", "kxy"]
 
         # VTI
         elif self["probe"] == "VTI":
-            Q = 5000*self["I"]**2
-            alpha = self["w"]*self["t"]/self["L"]
-            T_av = 0*Q
-            dT_abs = 0*Q
-            dTx = 0*Q
-            prev = T_av+1000
-            # Loop to converge towards actual temperatures
-            while abs(prev.sum()-T_av.sum()) > 1e-10:
-                prev = T_av
-                S1 = seebeck_thermometry((dT_abs/2+self["T0"]))
-                S2 = seebeck_thermometry(self["T0"]+dT_abs+dTx/2)
-                dT_abs = abs(self["dTabs_Q"]-self["dTabs_0"])/S1/1000
-                dTx = (self["dTx_Q"]-self["dTx_0"])/S2/1000
-                Tm = dT_abs+self["T0"]
-                Tp = Tm+dTx
-                T_av = Tm+dTx/2
-            self["T_av"] = T_av
-            self["Tp"] = Tp
-            self["Tm"] = Tm
-            self["dTx"] = dTx
-            self["kxx"] = Q/self["dTx"]/alpha
+
+            # Importing data
+            dTabs_0, dTabs_Q = self["dTabs_0"], self["dTabs_Q"]
+            dTx_0, dTx_Q = self["dTx_0"], self["dTx_Q"]
+            T0 = self["T0"]
+            I = self["I"]
+
+            # Computing everything
+            result = F.vti_calibration_loop(dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0)
+            kxx = F.compute_kxx(I, result[1], self["w"], self["t"], self["L"])
+
+            # Storing in self
+            self["kxx"] = kxx
+            self["T_av"] = result[0]
+            self["dTx"] = result[1]
+            self["Tp"] = result[2]
+            self["Tm"] = result[3]
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+
             if self["H"] != "0.0" or self["force_kxy"] is True:
-                S = seebeck_thermometry(T_av)
-                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/S/1000
-                self["kxy"] = self["kxx"]*self["dTy"] / \
-                    self["dTx"]*self["L"]/self["w"]
+                # Compute dTy
+                Tr = T0+self["T_av"]/2  # Reference temp for the thermocouple
+                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy *= self["sign"]  # Apply the sign
+
+                # Compute kxy
+                kxy = compute_kxy(kxx, self["dTx"], dTy, self["w"], self["L"])
+
+                # Store in self
+                self["dTy"] = dTy
+                self["kxy"] = kxy
                 self.measures += ["dTy", "kxy"]
 
         return
