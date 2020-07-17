@@ -27,13 +27,13 @@ from .parameters_labels import (
 )
 from .sample_dimensions import SampleDimensions
 
-################################################################################
-#                          ____ _        _    ____ ____                        #
-#                         / ___| |      / \  / ___/ ___|                       #
-#                        | |   | |     / _ \ \___ \___ \                       #
-#                        | |___| |___ / ___ \ ___) |__) |                      #
-#                         \____|_____/_/   \_\____/____/                       #
-################################################################################
+###############################################################################
+#                          ____ _        _    ____ ____                       #
+#                         / ___| |      / \  / ___/ ___|                      #
+#                        | |   | |     / _ \ \___ \___ \                      #
+#                        | |___| |___ / ___ \ ___) |__) |                     #
+#                         \____|_____/_/   \_\____/____/                      #
+###############################################################################
 
 
 class Conductivity:
@@ -50,54 +50,233 @@ class Conductivity:
     __dict_axis = get_figure_axes()
     __figure_labels = get_figure_labels()
 
-    def __init__(self, filename=None, sample_dimensions=SampleDimensions(), sign=1, **kwargs):
+    def __init__(
+        self, filename, sample_dimensions=SampleDimensions(), sign=1, **kwargs
+    ):
+        self.__read_data_from(filename)
+        self.sample_dimensions = sample_dimensions
+        self.__set_sign_from(sign)
+        self.__set_parameters_from(kwargs)
 
-        self.parameters = []
+    def __read_data_from(self, filename):
+        self.filename = filename
+        self.__read_file(filename)
+        if self["filetype"] == "raw_data":
+            if getattr(self, "__H") != "0.0" and self.symmetrize is True:
+                self.__Symmetrize()
+            self.__Analyze()
 
-        try:
-            self["force_kxy"] = kwargs["force_kxy"]
-            kwargs.pop("force_kxy")
-            if type(self["force_kxy"]) is bool:
-                pass
-            else:
-                raise TypeError("force_kxy must be True or False")
-        except KeyError:
-            self["force_kxy"] = False
-
-        try:
-            self["symmetrize"] = kwargs["symmetrize"]
-            kwargs.pop("symmetrize")
-            if type(self["symmetrize"]) is bool:
-                pass
-            else:
-                raise TypeError("symmetrize must be True or False")
-        except KeyError:
-            self["symmetrize"] = True
-
-        for key, value in kwargs.items():
-            setattr(self, "__" + key, value)
-            self.parameters.append(key)
-
+    def __set_sign_from(self, sign):
         if sign in [1, -1]:
-            self["sign"] = sign
+            self.sign = sign
         else:
             raise ValueError("Sign must be 1 or -1")
 
-        if filename is not None:
-            self.__read_file(filename)
+    def __set_parameters_from(self, kwargs):
+        self.__set_force_kxy_from(kwargs)
+        self.__set_symmetrize_from(kwargs)
+        self.parameters = kwargs
 
-            if self["filetype"] == "raw_data":
-                self.sample_dimensions = sample_dimensions
+    def __set_force_kxy_from(self, kwargs):
+        if "force_kxy" in kwargs:
+            if type(kwargs["force_kxy"]) is bool:
+                self.force_kxy = kwargs.pop("force_kxy")
+            else:
+                raise TypeError("force_kxy must be True or False")
+        else:
+            self.force_kxy = False
 
-                if getattr(self, "__H") != "0.0" and self["symmetrize"] is True:
-                    self.__Symmetrize()
-                else:
+    def __set_symmetrize_from(self, kwargs):
+        if "symmetrize" in kwargs:
+            if type(kwargs["symmetrize"]) is bool:
+                self.symmetrize = kwargs.pop("symmetrize")
+            else:
+                raise TypeError("symmetrize must be True or False")
+        else:
+            self.symmetrize = False
+
+    def __read_file(self, filename):
+        """
+        Used to read the file header and the data. Also detects the probe that
+        has been used for the measurement. Also detects if the data is raw or
+        already analyzed.
+        """
+        measures = []
+        parameters = []
+        raw_data = []
+        # Converting filename to an absolute path if it is relative
+        filename = os.path.abspath(filename)
+        self["filename"] = filename
+
+        # Extracting info from filename
+        # Date
+        date = "-".join(filename.split("/")[-1].split(".")[-2].split("-")[-3:])
+        setattr(self, "__date", date)
+        parameters.append("date")
+
+        # Magnetic field
+        f = filename.split("/")[-1].split(".")
+        H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
+        if "H" != "0.0" and self.symmetrize is False:
+            if len(filename.split("--")) == 1:
+                pass
+            else:
+                H = "-" + H
+        setattr(self, "__H", H)
+        parameters.append("H")
+        if H == "0.0":
+            self.symmetrize = False
+        else:
+            pass
+
+        # Sample name
+        if hasattr(self, "__sample") is False:
+            sample = list(filter(None, filename.split("/")[-1].split("-")))[-4]
+            setattr(self, "__sample", sample)
+            parameters.append("sample")
+        else:
+            pass
+
+        # Mount
+        mount = list(filter(None, filename.split("/")[-1].split("-")))[-5]
+        setattr(self, "__mount", mount)
+        parameters.append("mount")
+
+        # Read the data
+        if H == "0.0" or self.symmetrize is False:
+            data = np.genfromtxt(filename, delimiter="\t").T
+        else:
+            if len(filename.split("--")) == 1:
+                filename2 = filename.replace("TS-", "TS--")
+                exist = os.path.isfile(filename2)
+                if exist is True:
                     pass
-                self.__Analyze()
+                else:
+                    filename3 = filename2
+                    dates = self.__Dates(date)
+                    for i in dates:
+                        filename3 = filename2.replace(date, i)
+                        exist = os.path.isfile(filename3)
+                        if exist is True:
+                            filename2 = filename3
+                            break
+                        else:
+                            pass
+                    if exist is False:
+                        filename2 = filename
+                    else:
+                        filename2 = filename3
+            else:
+                filename2 = filename
+                filename = filename2.replace("--", "-")
+                exist = os.path.isfile(filename)
+                if exist is True:
+                    pass
+                else:
+                    filename3 = filename
+                    dates = self.__Dates(date)
+                    for i in dates:
+                        filename3 = filename.replace(date, i)
+                        exist = os.path.isfile(filename3)
+                        if exist is True:
+                            filename = filename3
+                            break
+                        else:
+                            pass
+                    if exist is False:
+                        filename = filename2
+                    else:
+                        filename = filename3
+
+            if filename == filename2:
+                self.symmetrize = False
             else:
                 pass
+            data = np.genfromtxt(filename, delimiter="\t").T
+            data2 = np.genfromtxt(filename2, delimiter="\t").T
 
-            self.__add_measure()
+        # Reading all the lines in the header
+        lines = []
+
+        with open(filename) as f:
+            for i, line in enumerate(f):
+                l = line.split(" ")
+                if l[0] != "#":
+                    numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+                    if l[0][0] in numbers:
+                        break
+                    else:
+                        lines.append(l[0].strip())
+                else:
+                    lines.append(line.strip()[2:])
+
+        # Makes sure there is a header
+        if len(lines) == 0:
+            raise Exception("No header detected, cannot analyze the data!")
+        else:
+            pass
+        # Detect probe or already treated data
+        for line in lines:
+            l = list(filter(None, line.split("\t")))
+            # Checks for comments shorter than the raw data header
+            if len(l) < 6:
+                for key, values in self.__dict_parameters.items():
+                    if l[0] in values:
+                        if hasattr(self, "__" + key) is False:
+                            setattr(self, "__" + key, l[-1])
+                            parameters.append(key)
+                        else:
+                            pass
+                    else:
+                        pass
+            else:
+                for key, values in self.__dict_raw.items():
+                    for i in range(len(l)):
+                        if l[i].strip() in values:
+                            if H != "0.0" and self.symmetrize is True:
+                                setattr(self, "__" + key, [data[i], data2[i]])
+                            else:
+                                setattr(self, "__" + key, data[i])
+                            raw_data.append(key)
+                        else:
+                            pass
+                        if len(raw_data) == 0:
+                            check_treated = True
+                            self["filetype"] = "treated"
+                        else:
+                            check_treated = False
+                            self["filetype"] = "raw_data"
+
+                if check_treated is True:
+                    for key, values in self.__dict_measures.items():
+                        for i in range(len(l)):
+                            if l[i].strip() in values:
+                                setattr(self, "__" + key, data[i])
+                                measures.append(key)
+                            else:
+                                pass
+                    if len(measures) == 0:
+                        raise Exception("No known measurements found")
+                    else:
+                        pass
+                else:
+                    pass
+
+                if self["filetype"] == "raw_data":
+                    self.datatype = "Raw"
+                    if "dTabs_0" in raw_data:
+                        self["probe"] = "VTI"
+                    else:
+                        self["probe"] = "Tallahasse"
+                elif self["filetype"] == "treated":
+                    self.datatype = "Treated"
+
+                self.lines = lines
+                self.parameters += parameters
+                self.measures = measures
+                self.raw_data = raw_data
+
+        return
 
     def __Symmetrize(self):
         sym = [
@@ -146,12 +325,15 @@ class Conductivity:
             self["kxx"] = 5000 * (self["I"]) ** 2 / self["dTx"] / alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
 
-
-            if self["H"] != "0.0" or self["force_kxy"] is True:
+            if self["H"] != "0.0" or self.force_kxy is True:
                 S = seebeck_thermometry((self["T_av"] + self["T0"]) / 2)
-                self["dTy"] = self["sign"] * (self["dTy_Q"] - self["dTy_0"]) / 1000 / S
+                self["dTy"] = self.sign * (self["dTy_Q"] - self["dTy_0"]) / 1000 / S
                 self["kxy"] = (
-                    self["kxx"] * self["dTy"] / self["dTx"] * self.sample_dimensions.length / self.sample_dimensions.width
+                    self["kxx"]
+                    * self["dTy"]
+                    / self["dTx"]
+                    * self.sample_dimensions.length
+                    / self.sample_dimensions.width
                 )
                 self.measures += ["dTy", "kxy"]
         # VTI
@@ -177,196 +359,17 @@ class Conductivity:
             self["dTx"] = dTx
             self["kxx"] = Q / self["dTx"] / alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
-            if self["H"] != "0.0" or self["force_kxy"] is True:
+            if self["H"] != "0.0" or self.force_kxy is True:
                 S = seebeck_thermometry(T_av)
-                self["dTy"] = self["sign"] * (self["dTy_Q"] - self["dTy_0"]) / S / 1000
+                self["dTy"] = self.sign * (self["dTy_Q"] - self["dTy_0"]) / S / 1000
                 self["kxy"] = (
-                    self["kxx"] * self["dTy"] / self["dTx"] * self.sample_dimensions.length / self.sample_dimensions.width
+                    self["kxx"]
+                    * self["dTy"]
+                    / self["dTx"]
+                    * self.sample_dimensions.length
+                    / self.sample_dimensions.width
                 )
                 self.measures += ["dTy", "kxy"]
-
-        return
-
-    def __read_file(self, filename):
-        """
-        Used to read the file header and the data. Also detects the probe that
-        has been used for the measurement. Also detects if the data is raw or
-        already analyzed.
-        """
-        measures = []
-        parameters = []
-        raw_data = []
-        # Converting filename to an absolute path if it is relative
-        filename = os.path.abspath(filename)
-        self["filename"] = filename
-
-        # Extracting info from filename
-        # Date
-        date = "-".join(filename.split("/")[-1].split(".")[-2].split("-")[-3:])
-        setattr(self, "__date", date)
-        parameters.append("date")
-
-        # Magnetic field
-        f = filename.split("/")[-1].split(".")
-        H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
-        if "H" != "0.0" and self["symmetrize"] is False:
-            if len(filename.split("--")) == 1:
-                pass
-            else:
-                H = "-" + H
-        setattr(self, "__H", H)
-        parameters.append("H")
-        if H == "0.0":
-            self["symmetrize"] = False
-        else:
-            pass
-
-        # Sample name
-        if hasattr(self, "__sample") is False:
-            sample = list(filter(None, filename.split("/")[-1].split("-")))[-4]
-            setattr(self, "__sample", sample)
-            parameters.append("sample")
-        else:
-            pass
-
-        # Mount
-        mount = list(filter(None, filename.split("/")[-1].split("-")))[-5]
-        setattr(self, "__mount", mount)
-        parameters.append("mount")
-
-        # Read the data
-        if H == "0.0" or self["symmetrize"] is False:
-            data = np.genfromtxt(filename, delimiter="\t").T
-        else:
-            if len(filename.split("--")) == 1:
-                filename2 = filename.replace("TS-", "TS--")
-                exist = os.path.isfile(filename2)
-                if exist is True:
-                    pass
-                else:
-                    filename3 = filename2
-                    dates = self.__Dates(date)
-                    for i in dates:
-                        filename3 = filename2.replace(date, i)
-                        exist = os.path.isfile(filename3)
-                        if exist is True:
-                            filename2 = filename3
-                            break
-                        else:
-                            pass
-                    if exist is False:
-                        filename2 = filename
-                    else:
-                        filename2 = filename3
-            else:
-                filename2 = filename
-                filename = filename2.replace("--", "-")
-                exist = os.path.isfile(filename)
-                if exist is True:
-                    pass
-                else:
-                    filename3 = filename
-                    dates = self.__Dates(date)
-                    for i in dates:
-                        filename3 = filename.replace(date, i)
-                        exist = os.path.isfile(filename3)
-                        if exist is True:
-                            filename = filename3
-                            break
-                        else:
-                            pass
-                    if exist is False:
-                        filename = filename2
-                    else:
-                        filename = filename3
-
-            if filename == filename2:
-                self["symmetrize"] = False
-            else:
-                pass
-            data = np.genfromtxt(filename, delimiter="\t").T
-            data2 = np.genfromtxt(filename2, delimiter="\t").T
-
-        # Reading all the lines in the header
-        lines = []
-
-        with open(filename) as f:
-            for i, line in enumerate(f):
-                l = line.split(" ")
-                if l[0] != "#":
-                    numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-                    if l[0][0] in numbers:
-                        break
-                    else:
-                        lines.append(l[0].strip())
-                else:
-                    lines.append(line.strip()[2:])
-
-        # Makes sure there is a header
-        if len(lines) == 0:
-            raise Exception("No header detected, cannot analyze the data!")
-        else:
-            pass
-        # Detect probe or already treated data
-        for line in lines:
-            l = list(filter(None, line.split("\t")))
-            # Checks for comments shorter than the raw data header
-            if len(l) < 6:
-                for key, values in self.__dict_parameters.items():
-                    if l[0] in values:
-                        if hasattr(self, "__" + key) is False:
-                            setattr(self, "__" + key, l[-1])
-                            parameters.append(key)
-                        else:
-                            pass
-                    else:
-                        pass
-            else:
-                for key, values in self.__dict_raw.items():
-                    for i in range(len(l)):
-                        if l[i].strip() in values:
-                            if H != "0.0" and self["symmetrize"] is True:
-                                setattr(self, "__" + key, [data[i], data2[i]])
-                            else:
-                                setattr(self, "__" + key, data[i])
-                            raw_data.append(key)
-                        else:
-                            pass
-                        if len(raw_data) == 0:
-                            check_treated = True
-                            self["filetype"] = "treated"
-                        else:
-                            check_treated = False
-                            self["filetype"] = "raw_data"
-
-                if check_treated is True:
-                    for key, values in self.__dict_measures.items():
-                        for i in range(len(l)):
-                            if l[i].strip() in values:
-                                setattr(self, "__" + key, data[i])
-                                measures.append(key)
-                            else:
-                                pass
-                    if len(measures) == 0:
-                        raise Exception("No known measurements found")
-                    else:
-                        pass
-                else:
-                    pass
-
-                if self["filetype"] == "raw_data":
-                    self.datatype = "Raw"
-                    if "dTabs_0" in raw_data:
-                        self["probe"] = "VTI"
-                    else:
-                        self["probe"] = "Tallahasse"
-                elif self["filetype"] == "treated":
-                    self.datatype = "Treated"
-
-                self.lines = lines
-                self.parameters += parameters
-                self.measures = measures
-                self.raw_data = raw_data
 
         return
 
@@ -932,17 +935,19 @@ if __name__ == "__main__":
     except IndexError:
         raise Exception("First argument must be a filename")
     try:
-        w = float(sys.argv[2])
-        t = float(sys.argv[3])
-        L = float(sys.argv[4])
+        width = float(sys.argv[2])
+        thickness = float(sys.argv[3])
+        lenght = float(sys.argv[4])
+        dimensions = SampleDimensions(width, thickness, lenght)
         sign = int(sys.argv[5])
-        sample = Conductivity(filename, w, t, L, sign)
+        sample = Conductivity(filename, dimensions, sign)
     except IndexError:
         try:
-            w = float(sys.argv[2])
-            t = float(sys.argv[3])
-            L = float(sys.argv[4])
-            sample = Conductivity(filename, w, t, L, sign)
+            width = float(sys.argv[2])
+            thickness = float(sys.argv[3])
+            length = float(sys.argv[4])
+            dimensions = SampleDimensions(width, thickness, length)
+            sample = Conductivity(filename, dimensions, sign)
         except IndexError:
             sample = Conductivity(filename)
     sample.Plot_all(save=True)
