@@ -1,4 +1,4 @@
-from ThermalConductivity.Analysis.__functions import (
+from ThermalConductivity.Analysis.Functions.__functions import (
     compute_kxx,
     compute_kxy,
     compute_thermocouple,
