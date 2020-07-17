@@ -661,7 +661,10 @@ class Conductivity():
         elif show is True:
             plt.show()
 
-        return fig, ax
+        if return_fig is True:
+            return fig, ax
+        else:
+            return
 
     def Plot_all(self, *args, **kwargs):
         """
@@ -943,6 +946,9 @@ class Conductivity():
     def __delitem__(self, key):
         delattr(self, "__"+key)
         return
+
+    def Get_known_measures(self):
+        return list(self.__dict_measures.keys())
 
 ################################################################################
 #                       ____   ____ ____  ___ ____ _____                       #
