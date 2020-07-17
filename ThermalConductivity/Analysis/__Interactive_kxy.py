@@ -15,7 +15,6 @@ import os
 import datetime
 import numpy as np
 import numpy.polynomial.polynomial as npp
-import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Thermometry import seebeck_thermometry
