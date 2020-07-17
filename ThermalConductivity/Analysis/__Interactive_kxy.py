@@ -25,6 +25,7 @@ from .parameters_labels import (
     get_figure_axes,
     get_figure_labels,
 )
+from .sample_dimensions import SampleDimensions
 
 ################################################################################
 #                          ____ _        _    ____ ____                        #
@@ -49,7 +50,7 @@ class Conductivity:
     __dict_axis = get_figure_axes()
     __figure_labels = get_figure_labels()
 
-    def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
+    def __init__(self, filename=None, sample_dimensions=SampleDimensions(), sign=1, **kwargs):
 
         self.parameters = []
 
@@ -86,10 +87,7 @@ class Conductivity:
             self.__read_file(filename)
 
             if self["filetype"] == "raw_data":
-                dict_geo = {"w": w, "t": t, "L": L}
-                for key, value in dict_geo.items():
-                    setattr(self, "__" + key, value)
-                    self.parameters.append(key)
+                self.sample_dimensions = sample_dimensions
 
                 if getattr(self, "__H") != "0.0" and self["symmetrize"] is True:
                     self.__Symmetrize()
@@ -100,8 +98,6 @@ class Conductivity:
                 pass
 
             self.__add_measure()
-
-        return
 
     def __Symmetrize(self):
         sym = [
@@ -131,6 +127,8 @@ class Conductivity:
         return
 
     def __Analyze(self):
+        alpha = self.sample_dimensions.geometric_factor()
+
         # Probe Tallahasse
         if self["probe"] == "Tallahasse":
             # Polyfit of R+ and R-
@@ -144,20 +142,21 @@ class Conductivity:
             self["Tm"] = np.exp(npp.polyval(np.log(self["R-_Q"]), Cm))
             self["dTx"] = self["Tp"] - self["Tm"]
             self["T_av"] = 0.5 * (self["Tp"] + self["Tm"])
-            alpha = self["w"] * self["t"] / self["L"]
+
             self["kxx"] = 5000 * (self["I"]) ** 2 / self["dTx"] / alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+
+
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 S = seebeck_thermometry((self["T_av"] + self["T0"]) / 2)
                 self["dTy"] = self["sign"] * (self["dTy_Q"] - self["dTy_0"]) / 1000 / S
                 self["kxy"] = (
-                    self["kxx"] * self["dTy"] / self["dTx"] * self["L"] / self["w"]
+                    self["kxx"] * self["dTy"] / self["dTx"] * self.sample_dimensions.length / self.sample_dimensions.width
                 )
                 self.measures += ["dTy", "kxy"]
         # VTI
         elif self["probe"] == "VTI":
             Q = 5000 * self["I"] ** 2
-            alpha = self["w"] * self["t"] / self["L"]
             T_av = 0 * Q
             dT_abs = 0 * Q
             dTx = 0 * Q
@@ -182,7 +181,7 @@ class Conductivity:
                 S = seebeck_thermometry(T_av)
                 self["dTy"] = self["sign"] * (self["dTy_Q"] - self["dTy_0"]) / S / 1000
                 self["kxy"] = (
-                    self["kxx"] * self["dTy"] / self["dTx"] * self["L"] / self["w"]
+                    self["kxx"] * self["dTy"] / self["dTx"] * self.sample_dimensions.length / self.sample_dimensions.width
                 )
                 self.measures += ["dTy", "kxy"]
 
