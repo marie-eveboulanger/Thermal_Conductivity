@@ -6,6 +6,7 @@ handling that are required by other modules.
 import os
 import datetime
 import re
+import ThermalConductivity.Utilities.Database as D
 
 
 def get_symetric_file(filename, days=3):
@@ -78,7 +79,7 @@ def get_symetric_file(filename, days=3):
                 print("No symetric file found")
                 filename2 = None
 
-    return os.path.join(directory,filename2)
+    return os.path.join(directory, filename2)
 
 
 def generate_dates(date, days=3):
@@ -113,7 +114,7 @@ def generate_dates(date, days=3):
 
 def find_H(filename):
     """
-    Finds the magnetic field value in the filename
+    Finds the magnetic field value in the filename or the file's header
 
     Parameters:
     ----------------------------------------------------------------------------
@@ -121,17 +122,44 @@ def find_H(filename):
                 The name of the file to search
     """
 
-    os.path.split(filename)[1]
-    H = re.search(r"\d{1,2}\.\d{1}T", filename)
-    if H is not None:
-        H = H.group()[0:-1]
+    filename = os.path.abspath(filename)
+    header = read_header(filename)
+    if len(header) > 1:
+        keys = D.parameters_dict["H"]
+        H = None
+        for h in header:
+            if H is not None:
+                break
+            else:
+                pass
+            for k in keys:
+                if h.find(k) != -1:
+                    h = h.replace(k, "")
+                    H = re.search(r"\d{1,2}\.\d{1}T", h)
+                    if H is not None:
+                        H = H.group()[0:-1]
+                        break
+                    else:
+                        pass
+                else:
+                    pass
+    else:
+        H = None
+
+    if H is None:
+        os.path.split(filename)[1]
+        H = re.search(r"\d{1,2}\.\d{1}T", filename)
+        if H is not None:
+            H = H.group()[0:-1]
+    else:
+        pass
 
     return H
 
 
 def find_date(filename):
     """
-    Finds the date in the filename
+    Finds the date in the filename or the file's header
 
     Parameters:
     ----------------------------------------------------------------------------
@@ -139,17 +167,42 @@ def find_date(filename):
                 The name of the file to search
     """
 
-    filename = os.path.split(filename)[1]
-    date = re.search(r"\d{4}-\d{2}-\d{2}", filename)
-    if date is not None:
-        date = date.group()
+    filename = os.path.abspath(filename)
+    header = read_header(filename)
+    if len(header) > 1:
+        keys = D.parameters_dict["date"]
+        date = None
+        for h in header:
+            if date is not None:
+                break
+            else:
+                pass
+            for k in keys:
+                if h.find(k) != -1:
+                    h = h.replace(k, "")
+                    date = re.search(r"\d{4}-\d{2}-\d{2}", h)
+                    if date is not None:
+                        date = date.group()[0:-1]
+                        break
+                    else:
+                        pass
+                else:
+                    pass
+    else:
+        date = None
+
+    if date is None:
+        filename = os.path.split(filename)[1]
+        date = re.search(r"\d{4}-\d{2}-\d{2}", filename)
+        if date is not None:
+            date = date.group()
 
     return date
 
 
 def find_mount(filename):
     """
-    Finds the mount in the filename
+    Finds the mount in the filename or the file's header
 
     Parameters:
     ----------------------------------------------------------------------------
@@ -157,17 +210,44 @@ def find_mount(filename):
                 The name of the file to search
     """
 
-    filename = os.path.split(filename)[1]
-    mount = re.search(r"-\w{3}-", filename)
-    if mount is not None:
-        mount = mount.group()[1:-1]
+    filename = os.path.abspath(filename)
+    header = read_header(filename)
+    if len(header) > 1:
+        keys = D.parameters_dict["mount"]
+        mount = None
+        for h in header:
+            if mount is not None:
+                break
+            else:
+                pass
+            for k in keys:
+                if h.find(k) != -1:
+                    h = h.replace(k, "")
+                    mount = re.search(r"\w{3}", h)
+                    if mount is not None:
+                        mount = mount.group()[0:-1]
+                        break
+                    else:
+                        pass
+                else:
+                    pass
+    else:
+        mount = None
+
+    if mount is None:
+        filename = os.path.split(filename)[1]
+        mount = re.search(r"-\w{3}-", filename)
+        if mount is not None:
+            mount = mount.group()[1:-1]
+    else:
+        pass
 
     return mount
 
 
 def find_sample(filename):
     """
-    Finds the sample name in the filename
+    Finds the sample name in the filename or the file's header
 
     Parameters:
     ----------------------------------------------------------------------------
@@ -175,17 +255,77 @@ def find_sample(filename):
                 The name of the file to search
     """
 
-    filename = os.path.split(filename)[1]
-    sample = os.path.splitext(filename)[0]
+    filename = os.path.abspath(filename)
+    header = read_header(filename)
+    if len(header) > 1:
+        keys = D.parameters_dict["sample"]
+        sample = None
+        for h in header:
+            if sample is not None:
+                break
+            else:
+                pass
+            for k in keys:
+                if h.find(k) != -1:
+                    h = h.replace(k, "")
+                    sample = re.search(r"[\d\w]{4,}", h)
+                    if sample is not None:
+                        sample = sample.group()[0:-1]
+                        break
+                    else:
+                        pass
+                else:
+                    pass
+    else:
+        sample = None
 
-    date = find_date(filename)
-    H = find_H(filename)
-    mount = find_mount(filename)
+    if sample is None:
+        sample = os.path.split(filename)[1]
+        sample = os.path.splitext(sample)[0]
 
-    sample = sample.replace(date, "")
-    sample = sample.replace(H+"T", "")
-    sample = sample.replace(mount, "")
-    sample = sample.replace("Data", "")
-    sample = re.search(r"[\d\w]{4,}", sample).group()
+        date = find_date(filename)
+        H = find_H(filename)
+        mount = find_mount(filename)
+
+        sample = sample.replace(date, "")
+        sample = sample.replace(H+"T", "")
+        sample = sample.replace(mount, "")
+        sample = sample.replace("Data", "")
+        sample = re.search(r"[\d\w]{4,}", sample).group()
+    else:
+        pass
 
     return sample
+
+
+def read_header(filename):
+    """
+    Reads the header of the specified file
+
+    """
+    filename = os.path.abspath(filename)
+
+    with open(filename) as f:
+        header = []
+        for i, line in enumerate(f):
+            if line[0] == "#":
+                header.append(line[1:])
+            elif line[0] != "#" and i == 0:
+                header.append(line)
+                break
+            else:
+                break
+
+    return header
+
+
+def read_raw_file(filename):
+    return
+
+
+def read_treated(filename):
+    return
+
+
+def read_file(filename):
+    return
