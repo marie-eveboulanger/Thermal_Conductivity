@@ -121,7 +121,7 @@ class Conductivity():
             else:
                 raw_data = U.read_file_raw(filename)
 
-            for key, values in raw_data:
+            for key, values in raw_data.items():
                 self[key] = values
 
             self.__Analyze()
