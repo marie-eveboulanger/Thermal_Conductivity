@@ -54,7 +54,7 @@ def get_symetric_file(filename, days=3):
 
     # If there is more than 2 files use another method
     if len(files) > 2:
-        H = find_H(filename)
+        H = find_H(os.path.join(directory, filename))
         if filename.find("--") == -1:
             filename2 = filename.replace(H, "-"+H)
         else:
