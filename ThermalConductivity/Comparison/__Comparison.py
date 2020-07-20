@@ -118,10 +118,10 @@ class Measurement():
                                 self.measures.append(key)
                             else:
                                 pass
-                            if len(self.measures) == 0:
-                                raise Exception("No known measurements found")
-                            else:
-                                pass
+                    if len(self.measures) == 0:
+                        raise Exception("No known measurements found")
+                    else:
+                        pass
 
             if hasattr(self, "__sample") is False:
                 setattr(self, "__sample", "unknown")
