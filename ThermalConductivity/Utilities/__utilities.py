@@ -384,15 +384,15 @@ def read_file_raw(filename):
     """
 
     filename = os.path.abspath(filename)
-    header = read_header(filename)[-1].strip().split("\t")
-    data = np.genfromtxt(filename, delimiter="\t").T
+    header = filter(None, read_header(filename)[-1].strip().split("\t"))
+    data=np.genfromtxt(filename, delimiter="\t").T
 
-    raw_data = dict()
+    raw_data=dict()
 
     for key, values in D.raw_data_dict.items():
         for i in range(len(header)):
             if header[i] in values:
-                raw_data[key] = data[i]
+                raw_data[key]=data[i]
             else:
                 pass
 
