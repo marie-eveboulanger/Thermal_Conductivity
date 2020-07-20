@@ -222,7 +222,7 @@ class Conductivity():
 
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 # Compute dTy
-                Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
+                Tr = (self["Tp"])  # Reference temp for the thermocouple
                 dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
                 dTy *= self["sign"]  # Apply the sign
 
