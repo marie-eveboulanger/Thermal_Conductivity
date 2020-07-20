@@ -808,7 +808,7 @@ class Conductivity():
         Writes the treated data to a file
         """
         if filename is None:
-            if self["H"] == "0.0" or self["symmetrized"] is False:
+            if self["H"] == "0.0" or self["symmetrize"] is False:
                 filename = self["filename"].replace(".dat", "-treated.dat")
             else:
                 filename = self["filename"].replace(".dat", "-sym-treated.dat")
