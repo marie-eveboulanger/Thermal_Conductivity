@@ -254,7 +254,7 @@ class Conductivity():
         # Geometric parameters
         self["w"] = width
         self["t"] = thickness
-        self["L"] - length
+        self["L"] = length
 
         # Other parameters
         self["H"] = U.find_H(filename, header)
