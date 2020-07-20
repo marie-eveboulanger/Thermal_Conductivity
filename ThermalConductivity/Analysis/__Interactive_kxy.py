@@ -117,6 +117,9 @@ class Conductivity():
             self["t"] = t
             self["L"] = L
 
+            self.parameters = ["H", "date", "mount",
+                               "sample", "probe", "w", "t", "L"]
+
             # If symetrize is True
             if self["H"] != "0.0" and self["symmetrize"] is True:
                 filename2 = U.get_symetric_file(filename)
@@ -128,6 +131,8 @@ class Conductivity():
             for key, values in raw_data.items():
                 self[key] = values
 
+
+            self.measures = []
             self.__Analyze()
             self.__add_measure()
 
