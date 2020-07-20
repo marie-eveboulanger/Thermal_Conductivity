@@ -396,4 +396,4 @@ def read_file_raw(filename):
             else:
                 pass
 
-    return measurements
+    return raw_data
