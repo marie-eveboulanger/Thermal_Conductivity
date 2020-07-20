@@ -18,6 +18,7 @@ import numpy.polynomial.polynomial as npp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Analysis import Functions as F
+from ThermalConductivity import Utilities as U
 from ThermalConductivity.Utilities import Database as D
 from ThermalConductivity.Thermometry import seebeck_thermometry
 
@@ -76,8 +77,7 @@ class Conductivity():
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
-        self.parameters = []
-
+        # Check for some specific kwargs
         try:
             self["force_kxy"] = kwargs["force_kxy"]
             kwargs.pop("force_kxy")
@@ -98,61 +98,62 @@ class Conductivity():
         except KeyError:
             self["symmetrize"] = True
 
-        for key, value in kwargs.items():
-            setattr(self, "__"+key, value)
-            self.parameters.append(key)
-
         if sign in [1, -1]:
             self["sign"] = sign
         else:
             raise ValueError("Sign must be 1 or -1")
 
         if filename is not None:
-            self.__read_file(filename)
+            filename = os.path.abspath(filename)
+            header = U.read_header(filename)
 
-            if self["filetype"] == "raw_data":
-                dict_geo = {"w": w, "t": t, "L": L}
-                for key, value in dict_geo.items():
-                    setattr(self, "__"+key, value)
-                    self.parameters.append(key)
+            # Find info
+            self["H"] = U.find_H(filename, header)
+            self["date"] = U.find_date(filename, header)
+            self["mount"] = U.find_mount(filename, header)
+            self["sample"] = U.find_sample(filename, header)
 
-                if getattr(self, "__H") != "0.0" and self["symmetrize"] is True:
-                    self.__Symmetrize()
-                else:
-                    pass
-                self.__Analyze()
+            # If symetrize is True
+            if self["H"] != "0.0" and self["symmetrize"] is True:
+                filename2 = U.get_symetric_file(filename)
+                raw_data = self.__Symmetrize(filename, filename2)
+
             else:
-                pass
+                raw_data = U.read_file_raw(filename)
 
+            for key, values in raw_data:
+                self[key] = values
+
+            self.__Analyze()
             self.__add_measure()
 
+        # Remaining kwargs are set as parameters
+        for key, value in kwargs.items():
+            self[key] = value
+            self.parameters.append(key)
+
         return
 
-    def __Symmetrize(self):
-        sym = ["T0",
-               "I",
-               "R+_0",
-               "R+_Q",
-               "R-_0",
-               "R-_Q",
-               "dTabs_0",
-               "dTabs_Q",
-               "dTx_0",
-               "dTx_Q"]
-
+    def __Symmetrize(self, filename, filename2):
         anti_sym = ["dTy_0", "dTy_Q"]
 
-        for i in sym:
-            if i in self.raw_data:
-                self[i] = 0.5*(self[i][0]+self[i][1])
+        if filename.find("--") != -1:
+            filename, filename2 = filename2, filename
+        else:
+            pass
+
+        data = U.read_file_raw(filename)
+        data2 = U.read_file_raw(filename2)
+
+        sym_data = dict()
+
+        for key, values in data:
+            if key in anti_sym:
+                sym_data[key] = 0.5*(data[key]-data2[key])
             else:
-                pass
-        for i in anti_sym:
-            if i in self.raw_data:
-                self[i] = 0.5*(self[i][0]-self[i][1])
-            else:
-                pass
-        return
+                sym_data[key] = 0.5*(data[key]+data[key])
+
+        return sym_data
 
     def __Analyze(self):
         # Probe Tallahasse
@@ -227,7 +228,8 @@ class Conductivity():
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
-                kxy = F.compute_kxy(kxx, self["dTx"], dTy, self["w"], self["L"])
+                kxy = F.compute_kxy(
+                    kxx, self["dTx"], dTy, self["w"], self["L"])
 
                 # Store in self
                 self["dTy"] = dTy
