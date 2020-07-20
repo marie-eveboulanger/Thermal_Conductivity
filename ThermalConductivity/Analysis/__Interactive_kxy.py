@@ -18,6 +18,7 @@ import numpy.polynomial.polynomial as npp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Analysis import Functions as F
+from ThermalConductivity.Utilities import Database as D
 from ThermalConductivity.Thermometry import seebeck_thermometry
 
 ################################################################################
@@ -37,48 +38,13 @@ class Conductivity():
     """
 
     # Creation of a dictionnary to sort data
-    __dict_measures = dict()
-    __dict_measures["T0"] = ["T0(K)", "T0 (K)"]
-    __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
-    __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
-    __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
-    __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
-    __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
-    __dict_measures["kxy"] = ["kxy(W/mk)", "k_xy(W/Km)", "Kxy (W / K m)"]
-    __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
-    __dict_measures["I"] = ["I(A)", "I (A)"]
-    __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
-    __dict_measures["kxx/T"] = ["kxx/T"]
-    __dict_measures["Resistance"] = ["Resistance"]
-    __dict_measures["dTx/T"] = ["dTx/T"]
-    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
-    __dict_measures["I_fit"] = ["I_fit"]
-    __dict_measures["T0_fit"] = ["T0_fit"]
+    __dict_measures = D.measurements_dict
 
     # Creation of a dictionnary to sort raw data
-    __dict_raw = dict()
-    __dict_raw["T0"] = ["#T0(K)"]
-    __dict_raw["I"] = ["I(A)"]
-    __dict_raw["R+_0"] = ["R+_0(V)"]
-    __dict_raw["R+_Q"] = ["R+_Q(V)"]
-    __dict_raw["R-_0"] = ["R-_0(V)"]
-    __dict_raw["R-_Q"] = ["R-_Q(V)"]
-    __dict_raw["dTy_0"] = ["dTy_0(V)"]
-    __dict_raw["dTy_Q"] = ["dTy_Q(V)"]
-    __dict_raw["dTabs_0"] = ["Tabs_0(V)"]
-    __dict_raw["dTabs_Q"] = ["Tabs_Q(V)"]
-    __dict_raw["dTx_0"] = ["dTx_0(V)"]
-    __dict_raw["dTx_Q"] = ["dTx_Q(V)"]
+    __dict_raw = D.raw_data_dict
 
     # Creation of a dictionnary to sort other info
-    __dict_parameters = dict()
-    __dict_parameters["H"] = ["H"]
-    __dict_parameters["w"] = ["w"]
-    __dict_parameters["t"] = ["t"]
-    __dict_parameters["L"] = ["L"]
-    __dict_parameters["mount"] = ["mount"]
-    __dict_parameters["sample"] = ["Sample", "sample"]
-    __dict_parameters["date"] = ["Date", "date"]
+    __dict_parameters = D.parameters_dict
 
     # Creation of an internal dictionnary used to match measurements to their
     # respective axis titles to make the figures prettier.

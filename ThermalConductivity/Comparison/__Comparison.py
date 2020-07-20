@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from ThermalConductivity.Utilities import Database as D
 
 ################################################################################
 #                 ____ _        _    ____ ____  _____ ____                     #
@@ -36,31 +37,10 @@ class Measurement():
     """
 
     # Creation of a dictionnary to sort data
-    __dict_measures = dict()
-    __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
-    __dict_measures["T0"] = ["T0(K)", "T0 (K)"]
-    __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
-    __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
-    __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
-    __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
-    __dict_measures["kxy"] = ["kxy(W/Km)", "k_xy(W/Km)", "Kxy (W / K m)"]
-    __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
-    __dict_measures["I"] = ["I(A)", "I (A)"]
-    __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
-    __dict_measures["kxx/T"] = ["kxx/T"]
-    __dict_measures["Resistance"] = ["Resistance"]
-    __dict_measures["dTx/T"] = ["dTx/T"]
-    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
+    __dict_measures = D.measurements_dict
 
     # Creation of a dictionnary to sort other info
-    __dict_parameters = dict()
-    __dict_parameters["H"] = ["H"]
-    __dict_parameters["w"] = ["w"]
-    __dict_parameters["t"] = ["t"]
-    __dict_parameters["L"] = ["L"]
-    __dict_parameters["mount"] = ["mount"]
-    __dict_parameters["sample"] = ["Sample", "sample"]
-    __dict_parameters["date"] = ["Date", "date"]
+    __dict_parameters = D.parameters_dict
 
     def __init__(self, filename=None, **kwargs):
         """
