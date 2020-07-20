@@ -351,6 +351,38 @@ def find_sample(filename, header=None):
     return sample
 
 
+def find_probe(filename, header):
+    """
+    Finds the probe used for the measurement
+
+    Parameters:
+    ----------------------------------------------------------------------------
+    filename:   string
+                The name of the file to search
+    header:     None or list of string
+                Used to read a header that is already in memory, that way the
+                file is only opened once which is more efficient
+    """
+
+    if header is None:
+        filename = os.path.abspath(filename)
+        header = read_header(filename)
+    else:
+        pass
+
+    header = list(filter(None, header[-1].strip().split("\t")))
+
+    # Defaults to tallahassee changes only if VTI detected
+    probe = "Tallahassee"
+    for i in D.raw_data_dict["dTx_0"]:
+        if i in header:
+            probe = "VTI"
+        else:
+            pass
+
+    return probe
+
+
 def read_header(filename):
     """
     Reads the header of the specified file
@@ -398,6 +430,7 @@ def read_file_raw(filename):
 
     return raw_data
 
+
 def read_file_treated(filename):
     """
     Reads the file and the file header and returns the data it found in a
@@ -424,6 +457,7 @@ def read_file_treated(filename):
 
     return measurements
 
+
 def read_parameters(header):
     """
     Reads parameters stored in a header
@@ -448,4 +482,3 @@ def read_parameters(header):
                 pass
 
     return parameters
-
