@@ -148,9 +148,9 @@ def find_H(filename, header=None):
             for k in keys:
                 if h.find(k) != -1:
                     h = h.replace(k, "")
-                    H = re.search(r"\d{1,2}\.\d{1}T", h)
+                    H = re.search(r"\d{1,2}\.\d{1}", h)
                     if H is not None:
-                        H = H.group()[0:-1]
+                        H = H.group()
                         break
                     else:
                         pass
@@ -208,7 +208,7 @@ def find_date(filename, header=None):
                     h = h.replace(k, "")
                     date = re.search(r"\d{4}-\d{2}-\d{2}", h)
                     if date is not None:
-                        date = date.group()[0:-1]
+                        date = date.group()
                         break
                     else:
                         pass
@@ -264,7 +264,7 @@ def find_mount(filename, header=None):
                     h = h.replace(k, "")
                     mount = re.search(r"\w{3}", h)
                     if mount is not None:
-                        mount = mount.group()[0:-1]
+                        mount = mount.group()
                         break
                     else:
                         pass
@@ -320,9 +320,9 @@ def find_sample(filename, header=None):
             for k in keys:
                 if h.find(k) != -1:
                     h = h.replace(k, "")
-                    sample = re.search(r"[\d\w]{4,}", h)
+                    sample = re.search(r"[\d\w]{4,}.*", h)
                     if sample is not None:
-                        sample = sample.group()[0:-1]
+                        sample = sample.group()
                         break
                     else:
                         pass
