@@ -370,7 +370,8 @@ def read_header(filename):
 
     return header
 
-def read_file(filename):
+
+def read_file_raw(filename):
     """
     Reads the file and the file header and returns the data it found in a
     dictionary
@@ -380,4 +381,18 @@ def read_file(filename):
     filename:   string
                 The name and path of the file to be read
     """
-    return
+
+    filename = os.path.abspath(filename)
+    header = read_header(filename)[-1].strip().split("\t")
+    data = np.genfromtxt(filename, delimiter="\t").T
+
+    raw_data = dict()
+
+    for key, values in D.raw_data_dict.items():
+        for i in range(len(header)):
+            if h[i] in values:
+                measurements[key] = data[i]
+            else:
+                pass
+
+    return measurements
