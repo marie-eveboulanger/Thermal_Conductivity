@@ -157,11 +157,14 @@ class Conductivity():
 
         sym_data = dict()
 
-        for key, values in data:
-            if key in anti_sym:
-                sym_data[key] = 0.5*(data[key]-data2[key])
+        for key, values in data.items():
+            if key in data2:
+                if key in anti_sym:
+                    sym_data[key] = 0.5*(data[key]-data2[key])
+                else:
+                    sym_data[key] = 0.5*(data[key]+data2[key])
             else:
-                sym_data[key] = 0.5*(data[key]+data[key])
+                pass
 
         return sym_data
 
