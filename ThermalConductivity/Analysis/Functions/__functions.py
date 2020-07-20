@@ -101,7 +101,7 @@ def compute_thermocouple(dT_heat_off, dT_heat_on, T_reference, gain=1000):
     """
 
     seebeck_coefficients = seebeck_thermometry(T_reference)
-    delta_T = abs(dT_heat_on-dT_heat_off)/seebeck_coefficients/gain
+    delta_T = (dT_heat_on-dT_heat_off)/seebeck_coefficients/gain
 
     return delta_T
 
@@ -136,8 +136,8 @@ def vti_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0):
         previous_T_av = T_av
         T_ref_1 = T0+dT_abs/2
         T_ref_2 = T_minus+dTx/2
-        dT_abs = compute_thermocouple(dT_abs_off, dT_abs_on, T_ref_1)
-        dTx = compute_thermocouple(dTx_off, dTx_on, T_ref_2)
+        dT_abs = abs(compute_thermocouple(dT_abs_off, dT_abs_on, T_ref_1))
+        dTx = abs(compute_thermocouple(dTx_off, dTx_on, T_ref_2))
         T_minus = T0+dT_abs
         T_plus = T_minus+dTx
         T_av = T_minus+dTx/2
