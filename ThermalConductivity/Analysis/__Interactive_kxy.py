@@ -111,7 +111,7 @@ class Conductivity():
             header = U.read_header(filename)
 
             # Find info
-            self.__add_parameters(w,t,l)
+            self.__add_parameters(w,t,L)
 
             # If symetrize is True
             if self["H"] != "0.0" and self["symmetrize"] is True:
