@@ -108,7 +108,6 @@ class Conductivity():
         if filename is not None:
             filename = os.path.abspath(filename)
             self["filename"] = filename
-            header = U.read_header(filename)
 
             # Find info
             self.__add_parameters(w,t,L)
@@ -249,6 +248,7 @@ class Conductivity():
     def __add_parameters(self,width,thickness,length):
 
         filename = self["filename"]
+        header = U.read_header(filename)
         parameters = []
 
         # Geometric parameters
