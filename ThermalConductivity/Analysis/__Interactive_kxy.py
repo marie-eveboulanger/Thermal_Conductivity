@@ -77,6 +77,8 @@ class Conductivity():
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
+        self.parameters = []
+        self.measures = []
         # Check for some specific kwargs
         try:
             self["force_kxy"] = kwargs["force_kxy"]
@@ -109,17 +111,7 @@ class Conductivity():
             header = U.read_header(filename)
 
             # Find info
-            self["H"] = U.find_H(filename, header)
-            self["date"] = U.find_date(filename, header)
-            self["mount"] = U.find_mount(filename, header)
-            self["sample"] = U.find_sample(filename, header)
-            self["probe"] = U.find_probe(filename, header)
-            self["w"] = w
-            self["t"] = t
-            self["L"] = L
-
-            self.parameters = ["H", "date", "mount",
-                               "sample", "probe", "w", "t", "L"]
+            self.__add_parameters(w,t,l)
 
             # If symetrize is True
             if self["H"] != "0.0" and self["symmetrize"] is True:
@@ -137,7 +129,6 @@ class Conductivity():
             for key, values in raw_data.items():
                 self[key] = values
 
-            self.measures = []
             self.__Analyze()
             self.__add_measure()
 
@@ -254,6 +245,32 @@ class Conductivity():
                 self.measures += ["dTy", "kxy"]
 
         return
+
+    def __add_parameters(self,width,thickness,length):
+
+        filename = self["filename"]
+        parameters = []
+
+        # Geometric parameters
+        self["w"] = width
+        self["t"] = thickness
+        self["L"] - length
+
+        # Other parameters
+        self["H"] = U.find_H(filename, header)
+        self["date"] = U.find_date(filename, header)
+        self["mount"] = U.find_mount(filename, header)
+        self["sample"] = U.find_sample(filename, header)
+        self["probe"] = U.find_probe(filename, header)
+
+        # Add to parameters
+        parameters += ["H","date","mount","sample","probe"]
+        parameters += ["w","t","L"]
+
+        self.parameters += parameters
+
+        return
+
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
