@@ -110,6 +110,8 @@ class Measurement():
                             pass
                 else:
                     for key, values in self.__dict_measures.items():
+                        print(key,values)
+
                         for i in range(len(l)):
                             if l[i].strip() in values:
                                 setattr(self, "__"+key, raw_data[i])
