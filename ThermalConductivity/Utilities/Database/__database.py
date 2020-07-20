@@ -7,7 +7,7 @@ the Visualization module.
 
 # Known raw data dictionary
 raw_data_dict = dict()
-raw_data_dict["T0"] = ["#T0(K),T0(K)"]
+raw_data_dict["T0"] = ["#T0(K)", "T0(K)"]
 raw_data_dict["I"] = ["I(A)"]
 raw_data_dict["R+_0"] = ["R+_0(V)"]
 raw_data_dict["R+_Q"] = ["R+_Q(V)"]
@@ -50,4 +50,3 @@ parameters_dict["L"] = ["L"]
 parameters_dict["mount"] = ["mount"]
 parameters_dict["sample"] = ["Sample", "sample"]
 parameters_dict["date"] = ["Date", "date"]
-
