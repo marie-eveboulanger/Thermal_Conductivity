@@ -6,6 +6,7 @@ handling that are required by other modules.
 import os
 import datetime
 import re
+import numpy as np
 import ThermalConductivity.Utilities.Database as D
 
 
