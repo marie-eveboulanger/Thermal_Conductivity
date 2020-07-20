@@ -43,7 +43,7 @@ class Measurement():
     __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
     __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
     __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
-    __dict_measures["kxy"] = ["kxy(W/mk)", "k_xy(W/Km)", "Kxy (W / K m)"]
+    __dict_measures["kxy"] = ["kxy(W/km)", "k_xy(W/Km)", "Kxy (W / K m)"]
     __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
     __dict_measures["I"] = ["I(A)", "I (A)"]
     __dict_measures["dTabs"] = ["dTabs", "dT_abs"]

@@ -370,14 +370,14 @@ def read_header(filename):
 
     return header
 
-
-def read_raw_file(filename):
-    return
-
-
-def read_treated(filename):
-    return
-
-
 def read_file(filename):
+    """
+    Reads the file and the file header and returns the data it found in a
+    dictionary
+
+    Parameters:
+    ----------------------------------------------------------------------------
+    filename:   string
+                The name and path of the file to be read
+    """
     return
