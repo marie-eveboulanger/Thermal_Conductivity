@@ -132,6 +132,7 @@ class Conductivity():
                 self[key] = values
 
 
+            self["filename"] = filename
             self.measures = []
             self.__Analyze()
             self.__add_measure()
