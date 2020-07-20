@@ -322,7 +322,7 @@ def find_sample(filename, header=None):
                     h = h.replace(k, "")
                     sample = re.search(r"[\d\w]{4,}.*", h)
                     if sample is not None:
-                        sample = sample.group()
+                        sample = sample.group().strip()
                         break
                     else:
                         pass
