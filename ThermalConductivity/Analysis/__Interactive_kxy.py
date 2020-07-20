@@ -226,7 +226,7 @@ class Conductivity():
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
-                kxy = compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
+                kxy = F.compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
 
                 # Store in self
                 self["dTy"] = dTy
@@ -261,7 +261,7 @@ class Conductivity():
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
-                kxy = compute_kxy(kxx, self["dTx"], dTy, self["w"], self["L"])
+                kxy = F.compute_kxy(kxx, self["dTx"], dTy, self["w"], self["L"])
 
                 # Store in self
                 self["dTy"] = dTy
