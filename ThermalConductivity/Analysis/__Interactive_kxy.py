@@ -105,6 +105,7 @@ class Conductivity():
 
         if filename is not None:
             filename = os.path.abspath(filename)
+            self["filename"] = filename
             header = U.read_header(filename)
 
             # Find info
@@ -124,6 +125,11 @@ class Conductivity():
             if self["H"] != "0.0" and self["symmetrize"] is True:
                 filename2 = U.get_symetric_file(filename)
                 raw_data = self.__Symmetrize(filename, filename2)
+            elif self["H"] != "0.0" and self["symmetrize"] is False:
+                if filename.find("--") != -1:
+                    self["H"] = "-"+self["H"]
+                else:
+                    pass
 
             else:
                 raw_data = U.read_file_raw(filename)
@@ -131,8 +137,6 @@ class Conductivity():
             for key, values in raw_data.items():
                 self[key] = values
 
-
-            self["filename"] = filename
             self.measures = []
             self.__Analyze()
             self.__add_measure()
@@ -250,196 +254,6 @@ class Conductivity():
                 self.measures += ["dTy", "kxy"]
 
         return
-
-    def __read_file(self, filename):
-        """
-        Used to read the file header and the data. Also detects the probe that
-        has been used for the measurement. Also detects if the data is raw or
-        already analyzed.
-        """
-        measures = []
-        parameters = []
-        raw_data = []
-        # Converting filename to an absolute path if it is relative
-        filename = os.path.abspath(filename)
-        self["filename"] = filename
-
-        # Extracting info from filename
-        # Date
-        date = "-".join(filename.split("/")[-1].split(".")[-2].split("-")[-3:])
-        setattr(self, "__date", date)
-        parameters.append("date")
-
-        # Magnetic field
-        f = filename.split("/")[-1].split(".")
-        H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
-        if "H" != "0.0" and self["symmetrize"] is False:
-            if len(filename.split("--")) == 1:
-                pass
-            else:
-                H = "-"+H
-        setattr(self, "__H", H)
-        parameters.append("H")
-        if H == "0.0":
-            self["symmetrize"] = False
-        else:
-            pass
-
-        # Sample name
-        if hasattr(self, "__sample") is False:
-            sample = list(filter(None, filename.split("/")[-1].split("-")))[-4]
-            setattr(self, "__sample", sample)
-            parameters.append("sample")
-        else:
-            pass
-
-        # Mount
-        mount = list(filter(None, filename.split("/")[-1].split("-")))[-5]
-        setattr(self, "__mount", mount)
-        parameters.append("mount")
-
-        # Read the data
-        if H == "0.0" or self["symmetrize"] is False:
-            data = np.genfromtxt(filename, delimiter="\t").T
-        else:
-            if len(filename.split("--")) == 1:
-                filename2 = filename.replace("TS-", "TS--")
-                exist = os.path.isfile(filename2)
-                if exist is True:
-                    pass
-                else:
-                    filename3 = filename2
-                    dates = self.__Dates(date)
-                    for i in dates:
-                        filename3 = filename2.replace(date, i)
-                        exist = os.path.isfile(filename3)
-                        if exist is True:
-                            filename2 = filename3
-                            break
-                        else:
-                            pass
-                    if exist is False:
-                        filename2 = filename
-                    else:
-                        filename2 = filename3
-            else:
-                filename2 = filename
-                filename = filename2.replace("--", "-")
-                exist = os.path.isfile(filename)
-                if exist is True:
-                    pass
-                else:
-                    filename3 = filename
-                    dates = self.__Dates(date)
-                    for i in dates:
-                        filename3 = filename.replace(date, i)
-                        exist = os.path.isfile(filename3)
-                        if exist is True:
-                            filename = filename3
-                            break
-                        else:
-                            pass
-                    if exist is False:
-                        filename = filename2
-                    else:
-                        filename = filename3
-
-            if filename == filename2:
-                self["symmetrize"] = False
-            else:
-                pass
-            data = np.genfromtxt(filename, delimiter="\t").T
-            data2 = np.genfromtxt(filename2, delimiter="\t").T
-
-        # Reading all the lines in the header
-        lines = []
-
-        with open(filename) as f:
-            for i, line in enumerate(f):
-                l = line.split(" ")
-                if l[0] != "#":
-                    numbers = ["0", "1", "2", "3",
-                               "4", "5", "6", "7", "8", "9"]
-                    if l[0][0] in numbers:
-                        break
-                    else:
-                        lines.append(l[0].strip())
-                else:
-                    lines.append(line.strip()[2:])
-
-        # Makes sure there is a header
-        if len(lines) == 0:
-            raise Exception("No header detected, cannot analyze the data!")
-        else:
-            pass
-        # Detect probe or already treated data
-        for line in lines:
-            l = list(filter(None, line.split("\t")))
-            # Checks for comments shorter than the raw data header
-            if len(l) < 6:
-                for key, values in self.__dict_parameters.items():
-                    if l[0] in values:
-                        if hasattr(self, "__"+key) is False:
-                            setattr(self, "__"+key, l[-1])
-                            parameters.append(key)
-                        else:
-                            pass
-                    else:
-                        pass
-            else:
-                for key, values in self.__dict_raw.items():
-                    for i in range(len(l)):
-                        if l[i].strip() in values:
-                            if H != "0.0" and self["symmetrize"] is True:
-                                setattr(self, "__"+key, [data[i], data2[i]])
-                            else:
-                                setattr(self, "__"+key, data[i])
-                            raw_data.append(key)
-                        else:
-                            pass
-                        if len(raw_data) == 0:
-                            check_treated = True
-                            self["filetype"] = "treated"
-                        else:
-                            check_treated = False
-                            self["filetype"] = "raw_data"
-
-                if check_treated is True:
-                    for key, values in self.__dict_measures.items():
-                        for i in range(len(l)):
-                            if l[i].strip() in values:
-                                setattr(self, "__"+key, data[i])
-                                measures.append(key)
-                            else:
-                                pass
-                    if len(measures) == 0:
-                        raise Exception("No known measurements found")
-                    else:
-                        pass
-                else:
-                    pass
-
-                if self["filetype"] == "raw_data":
-                    self.datatype = "Raw"
-                    if "dTabs_0" in raw_data:
-                        self["probe"] = "VTI"
-                    else:
-                        self["probe"] = "Tallahasse"
-                elif self["filetype"] == "treated":
-                    self.datatype = "Treated"
-
-                self.lines = lines
-                self.parameters += parameters
-                self.measures = measures
-                self.raw_data = raw_data
-
-        return
-
-    def __Dates(self, date):
-        d = datetime.date(*tuple([int(i) for i in date.split("-")]))
-        dates = ["%s" % (d+datetime.timedelta(i))
-                 for i in range(-2, 3) if i != 0]
-        return dates
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
