@@ -63,7 +63,7 @@ def get_symetric_file(filename, days=3):
         if if_file is True:
             pass
         else:
-            date = find_date(os.path.join(directory, filename2))
+            date = find_date(os.path.join(directory, filename))
             dates = generate_dates(date)
             for i in dates:
                 filename3 = filename2.replace(date, i)
