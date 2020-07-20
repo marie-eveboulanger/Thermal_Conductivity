@@ -112,7 +112,7 @@ def generate_dates(date, days=3):
     return dates
 
 
-def find_H(filename):
+def find_H(filename, header=None):
     """
     Finds the magnetic field value in the filename or the file's header
 
@@ -120,10 +120,23 @@ def find_H(filename):
     ----------------------------------------------------------------------------
     filename:   string
                 The name of the file to search
+    header:     None or list of string
+                Used to read a header that is already in memory, that way the
+                file is only opened once which is more efficient
     """
 
     filename = os.path.abspath(filename)
-    header = read_header(filename)
+    if header is None:
+        header = read_header(filename)
+    else:
+        if type(header) is list:
+            if type(header[0]) is str:
+                pass
+            else:
+                raise TypeError(
+                    "Header must be output of Utilities.read_header")
+        else:
+            raise TypeError("Header must be output of Utilities.read_header")
     if len(header) > 1:
         keys = D.parameters_dict["H"]
         H = None
@@ -157,7 +170,7 @@ def find_H(filename):
     return H
 
 
-def find_date(filename):
+def find_date(filename, header=None):
     """
     Finds the date in the filename or the file's header
 
@@ -165,10 +178,23 @@ def find_date(filename):
     ----------------------------------------------------------------------------
     filename:   string
                 The name of the file to search
+    header:     None or list of string
+                Used to read a header that is already in memory, that way the
+                file is only opened once which is more efficient
     """
 
     filename = os.path.abspath(filename)
-    header = read_header(filename)
+    if header is None:
+        header = read_header(filename)
+    else:
+        if type(header) is list:
+            if type(header[0]) is str:
+                pass
+            else:
+                raise TypeError(
+                    "Header must be output of Utilities.read_header")
+        else:
+            raise TypeError("Header must be output of Utilities.read_header")
     if len(header) > 1:
         keys = D.parameters_dict["date"]
         date = None
@@ -200,7 +226,7 @@ def find_date(filename):
     return date
 
 
-def find_mount(filename):
+def find_mount(filename, header=None):
     """
     Finds the mount in the filename or the file's header
 
@@ -208,10 +234,23 @@ def find_mount(filename):
     ----------------------------------------------------------------------------
     filename:   string
                 The name of the file to search
+    header:     None or list of string
+                Used to read a header that is already in memory, that way the
+                file is only opened once which is more efficient
     """
 
     filename = os.path.abspath(filename)
-    header = read_header(filename)
+    if header is None:
+        header = read_header(filename)
+    else:
+        if type(header) is list:
+            if type(header[0]) is str:
+                pass
+            else:
+                raise TypeError(
+                    "Header must be output of Utilities.read_header")
+        else:
+            raise TypeError("Header must be output of Utilities.read_header")
     if len(header) > 1:
         keys = D.parameters_dict["mount"]
         mount = None
@@ -245,7 +284,7 @@ def find_mount(filename):
     return mount
 
 
-def find_sample(filename):
+def find_sample(filename, header=None):
     """
     Finds the sample name in the filename or the file's header
 
@@ -253,10 +292,23 @@ def find_sample(filename):
     ----------------------------------------------------------------------------
     filename:   string
                 The name of the file to search
+    header:     None or list of string
+                Used to read a header that is already in memory, that way the
+                file is only opened once which is more efficient
     """
 
     filename = os.path.abspath(filename)
-    header = read_header(filename)
+    if header is None:
+        header = read_header(filename)
+    else:
+        if type(header) is list:
+            if type(header[0]) is str:
+                pass
+            else:
+                raise TypeError(
+                    "Header must be output of Utilities.read_header")
+        else:
+            raise TypeError("Header must be output of Utilities.read_header")
     if len(header) > 1:
         keys = D.parameters_dict["sample"]
         sample = None
