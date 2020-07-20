@@ -113,6 +113,9 @@ class Conductivity():
             self["mount"] = U.find_mount(filename, header)
             self["sample"] = U.find_sample(filename, header)
             self["probe"] = U.find_probe(filename, header)
+            self["w"] = w
+            self["t"] = t
+            self["L"] = L
 
             # If symetrize is True
             if self["H"] != "0.0" and self["symmetrize"] is True:
