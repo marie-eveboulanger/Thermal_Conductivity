@@ -397,3 +397,55 @@ def read_file_raw(filename):
                 pass
 
     return raw_data
+
+def read_file_treated(filename):
+    """
+    Reads the file and the file header and returns the data it found in a
+    dictionary
+
+    Parameters:
+    ----------------------------------------------------------------------------
+    filename:   string
+                The name and path of the file to be read
+    """
+
+    filename = os.path.abspath(filename)
+    header = list(filter(None, read_header(filename)[-1].strip().split("\t")))
+    data = np.genfromtxt(filename, delimiter="\t").T
+
+    measurements = dict()
+
+    for key, values in D.raw_data_dict.items():
+        for i in range(len(header)):
+            if header[i] in values:
+                measurements[key] = data[i]
+            else:
+                pass
+
+    return measurements
+
+def read_parameters(header):
+    """
+    Reads parameters stored in a header
+
+    Parameters:
+    ----------------------------------------------------------------------------
+    header:     string
+                Output from read_header
+    """
+
+    header = header[0:-1]
+    parameters = dict()
+
+    for key, values in D.parameters_dict.items():
+        for h in header:
+            line = h.strip().split("\t")
+            param = line[0]
+            value = line[-1]
+            if param in values:
+                parameters[key] = value
+            else:
+                pass
+
+    return parameters
+
