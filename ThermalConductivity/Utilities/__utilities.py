@@ -518,7 +518,8 @@ def write_to_file(filename, data, header, overwrite="ask", create_dir="ask"):
 
     # Checks if file exists
     if os.path.isfile(filename) is False:
-        pass
+        np.savetxt(filename, data, delimiter="\t", header=header, fmt="%.6e")
+
     elif os.path.isfile(filename) is True and overwrite == "ask":
         answer = input(
             "Do you want to overwrite the following file: %s (Y/n)?" % filename)
