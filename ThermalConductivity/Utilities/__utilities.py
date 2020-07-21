@@ -449,7 +449,7 @@ def read_file_treated(filename):
 
     measurements = dict()
 
-    for key, values in D.raw_data_dict.items():
+    for key, values in D.measurements_dict.items():
         for i in range(len(header)):
             if header[i] in values:
                 measurements[key] = data[i]

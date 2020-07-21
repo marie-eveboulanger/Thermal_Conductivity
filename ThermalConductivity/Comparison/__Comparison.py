@@ -76,13 +76,13 @@ class Measurement():
                 self[key] = value
                 self.measures.append(key)
 
-                self["H"] = U.find_H(filename, header)
-                self["date"] = U.find_date(filename, header)
-                self["mount"] = U.find_mount(filename, header)
-                self["sample"] = U.find_sample(filename, header)
-                self["probe"] = U.find_probe(filename, header)
+            self["H"] = U.find_H(filename, header)
+            self["date"] = U.find_date(filename, header)
+            self["mount"] = U.find_mount(filename, header)
+            self["sample"] = U.find_sample(filename, header)
+            self["probe"] = U.find_probe(filename, header)
 
-                self.parameters += ["H", "date", "mount", "sample", "probe"]
+            self.parameters += ["H", "date", "mount", "sample", "probe"]
 
         for key, value in kwargs.items():
             self[key] = value
