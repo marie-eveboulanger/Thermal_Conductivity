@@ -463,7 +463,7 @@ class Conductivity():
 
         return fig, ax
 
-    def Write_out(self, filename=None):
+    def Write_out(self, filename=None, overwrite="ask"):
         """
         Writes the treated data to a file
         """
@@ -495,7 +495,7 @@ class Conductivity():
         header = comments1+"\n"+comments2+"\n"+columns
         data = np.array([self[i] for i in measures]).T
 
-        U.write_to_file(filename, data, header)
+        U.write_to_file(filename, data, header, overwrite=overwrite)
 
     def Current(self, _min, _max, deg=5, T_max=100, N=100, *args, **kwargs):
         """
