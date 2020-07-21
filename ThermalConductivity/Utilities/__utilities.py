@@ -575,7 +575,11 @@ def save_to_pdf(filename, figures, overwrite="ask", create_dir="ask"):
 
     # Checks if file exists
     if os.path.isfile(filename) is False:
-        pass
+        pp = PdfPages(filename)
+        for fig in figures:
+            pp.savefig(fig)
+        pp.close()
+
     elif os.path.isfile(filename) is True and overwrite == "ask":
         answer = input(
             "Do you want to overwrite the following file: %s (Y/n)?" % filename)
