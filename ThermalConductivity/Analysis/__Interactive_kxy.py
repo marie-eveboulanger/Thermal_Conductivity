@@ -363,6 +363,8 @@ class Conductivity():
             kwargs["parameters"]["which"] = r"T$^{-}$"
             kwargs["fig"], kwargs["ax"] = fig, ax
             fig, ax = V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
+            kwargs.pop("fig")
+            kwargs.pop("ax")
 
         if "fig" in kwargs:
             return
