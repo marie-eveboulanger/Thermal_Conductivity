@@ -153,14 +153,14 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     else:
         pass
 
-    if len(fig.axes) == 1:
-        fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
+    if figtext is not None:
+        plt.figtext(0.05, 0.01, figtext, fontsize=axis_fs,
+                    va="bottom", ha="left")
     else:
         pass
 
-    if figtext is not None:
-        plt.figtext(0.05, 0.05, figtext, fontsize=axis_fs,
-                    va="bottom", ha="left")
+    if len(fig.axes) == 1:
+        fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
     else:
         pass
 
