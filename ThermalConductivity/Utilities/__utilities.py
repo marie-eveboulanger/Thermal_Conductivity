@@ -485,7 +485,8 @@ def read_parameters(header):
     return parameters
 
 
-def write_to_file(filename, data, header, overwrite="ask", create_dir="ask"):
+def write_to_file(filename, data, header, overwrite="ask", create_dir="ask",
+                  fmt="%.6e"):
     """
     Writes data to a file and creates the needed directories.
     Also checks to prevent overwrites
@@ -518,20 +519,20 @@ def write_to_file(filename, data, header, overwrite="ask", create_dir="ask"):
 
     # Checks if file exists
     if os.path.isfile(filename) is False:
-        np.savetxt(filename, data, delimiter="\t", header=header, fmt="%.6e")
+        np.savetxt(filename, data, delimiter="\t", header=header, fmt=fmt)
 
     elif os.path.isfile(filename) is True and overwrite == "ask":
         answer = input(
             "Do you want to overwrite the following file: %s (Y/n)?" % filename)
         if answer in ["Y", "y", "", "yes", "Yes"]:
             np.savetxt(filename, data, delimiter="\t",
-                       header=header, fmt="%.6e")
+                       header=header, fmt=fmt)
             print("Overwrote file: %s" % filename)
         else:
             print("Could not overwrite file, aborting")
             return
     elif os.path.isfile(filename) is True and overwrite is True:
-        np.savetxt(filename, data, delimiter="\t", header=header, fmt="%.6e")
+        np.savetxt(filename, data, delimiter="\t", header=header, fmt=fmt)
 
     elif os.path.isfile(filename) is True and overwrite is False:
         print("Could not overwrite file, aborting")

@@ -388,45 +388,23 @@ class Conductivity():
         figures = []
 
         try:
-            save = kwargs["save"]
-            kwargs.pop("save")
-        except KeyError:
-            save = False
-
-        try:
             filename = kwargs["filename"]
             kwargs.pop("filename")
         except KeyError:
-            if save is True:
-                filename = self["filename"].replace(".dat", ".pdf")
-                filename = filename.replace("data", "figures")
-                directory = os.path.split(filename)[0]
-                print(directory)
+            filename = None
 
-                # Creates a figure directory with the same structure as the data
-                # directory if the answer is yes, otherwise saves the pdf file
-                # with the data
-                if os.path.isdir(directory) is False:
-                    answer = input(
-                        "Do you want to create directory (Y/n): %s" % directory)
-                    if answer in ["Y", "y", "", "yes"]:
-                        os.makedirs(directory)
-                    else:
-                        filename = self["filename"].replace(".dat", ".pdf")
-                        print("Figures will be saved with data at %s" %
-                              filename)
-            else:
-                filename = None
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
 
         for key in measures:
             figures.append(self.Plot(key, *args, **kwargs)[0])
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            for i in figures:
-                pp.savefig(i)
-            pp.close()
+            U.save_to_pdf(filename, figures, overwrite=overwrite)
         else:
             pass
 
@@ -460,6 +438,12 @@ class Conductivity():
         except KeyError:
             filename = None
 
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
+
         for i in range(n):
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
@@ -473,9 +457,7 @@ class Conductivity():
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            pp.savefig(fig)
-            pp.close()
+            U.save_to_pdf(filename, fig, overwrite=overwrite)
         else:
             pass
 
@@ -513,8 +495,7 @@ class Conductivity():
         header = comments1+"\n"+comments2+"\n"+columns
         data = np.array([self[i] for i in measures]).T
 
-        np.savetxt(filename, data, delimiter="\t",
-                   header=header, fmt="%.6e")
+        U.write_to_file(filename, data, header)
 
     def Current(self, _min, _max, deg=5, T_max=100, N=100, *args, **kwargs):
         """
@@ -535,10 +516,10 @@ class Conductivity():
                 Number of points in the plot
         """
 
-        datafile = os.path.abspath("/".join(self["filename"].split("/")[0:-1]))
+        directory = os.path.split(self["filename"])[0]
         rnge = "%1.0f%s_to_%1.0f%s.dat" % (_min, "%", _max, "%")
         name = "_".join([self["sample"].replace(" ", "_"), "dTovT", rnge])
-        datafile = os.path.join(datafile, name)
+        datafile = os.path.join(directory, name)
         n = self["T_av"].shape[0]
         dT_T = np.linspace(_min/100, _max/100, n)
         alpha = self["w"]*self["t"]/self["L"]
@@ -588,9 +569,7 @@ class Conductivity():
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            pp.savefig(fig)
-            pp.close()
+            U.save_to_pdf(filename, fig)
         else:
             pass
 
@@ -598,24 +577,13 @@ class Conductivity():
             write = kwargs["write"]
             kwargs.pop("write")
         except KeyError:
-            if os.path.isfile(datafile) is False:
-                write = True
-            else:
-                answer = input(
-                    "File %s already exists, overwrite? (y/N)" % datafile)
-                if answer in ["Y", "y", "O", "o", "yes", "Yes", "oui", "Oui"]:
-                    write = True
-                    print("File overwritten")
-                else:
-                    write = False
-                    print("File will not be saved")
+            write = True
 
         if write is True:
             degrees = np.array([i for i in range(coeff_I.shape[0])])
             data = np.array([degrees, coeff_I[::-1]]).T
             header = "Current function coefficients\norder\tcoeff"
-            np.savetxt(datafile, data, delimiter="\t",
-                       header=header, fmt=["%i", "%.18e"])
+            U.write_to_file(datafile, data, header, fmt=["%i", "%,18e"])
         else:
             pass
 
