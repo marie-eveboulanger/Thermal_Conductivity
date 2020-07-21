@@ -127,7 +127,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     ax.plot(xdata, ydata, label=label, *args, **kwargs)
 
     if ydata.min()*ydata.max() < 0:
-        ax.axhline(0, "--k", lw=2)
+        ax.axhline(0, ls="--", color="k", lw=2)
     else:
         if ydata.min() >= 0:
             ax.set_ylim(0, ax.get_ylim()[1])
@@ -146,7 +146,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
                    direction="in", top=True, right=True)
 
     if label_size != 0:
-        ax.legend(label_font)
+        ax.legend(fontsize=label_font)
     else:
         pass
 
