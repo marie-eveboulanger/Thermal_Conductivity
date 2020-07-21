@@ -15,10 +15,13 @@ import os
 import datetime
 import numpy as np
 import numpy.polynomial.polynomial as npp
-import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from ThermalConductivity.Analysis import Functions as F
+from ThermalConductivity import Utilities as U
+from ThermalConductivity.Utilities import Database as D
 from ThermalConductivity.Thermometry import seebeck_thermometry
+from ThermalConductivity import Visualization as V
 
 ################################################################################
 #                          ____ _        _    ____ ____                        #
@@ -37,81 +40,25 @@ class Conductivity():
     """
 
     # Creation of a dictionnary to sort data
-    __dict_measures = dict()
-    __dict_measures["T0"] = ["T0(K)", "T0 (K)"]
-    __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
-    __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
-    __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
-    __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
-    __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
-    __dict_measures["kxy"] = ["kxy(W/mk)", "k_xy(W/Km)", "Kxy (W / K m)"]
-    __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
-    __dict_measures["I"] = ["I(A)", "I (A)"]
-    __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
-    __dict_measures["kxx/T"] = ["kxx/T"]
-    __dict_measures["Resistance"] = ["Resistance"]
-    __dict_measures["dTx/T"] = ["dTx/T"]
-    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
-    __dict_measures["I_fit"] = ["I_fit"]
-    __dict_measures["T0_fit"] = ["T0_fit"]
+    __dict_measures = D.measurements_dict
 
     # Creation of a dictionnary to sort raw data
-    __dict_raw = dict()
-    __dict_raw["T0"] = ["#T0(K)"]
-    __dict_raw["I"] = ["I(A)"]
-    __dict_raw["R+_0"] = ["R+_0(V)"]
-    __dict_raw["R+_Q"] = ["R+_Q(V)"]
-    __dict_raw["R-_0"] = ["R-_0(V)"]
-    __dict_raw["R-_Q"] = ["R-_Q(V)"]
-    __dict_raw["dTy_0"] = ["dTy_0(V)"]
-    __dict_raw["dTy_Q"] = ["dTy_Q(V)"]
-    __dict_raw["dTabs_0"] = ["Tabs_0(V)"]
-    __dict_raw["dTabs_Q"] = ["Tabs_Q(V)"]
-    __dict_raw["dTx_0"] = ["dTx_0(V)"]
-    __dict_raw["dTx_Q"] = ["dTx_Q(V)"]
+    __dict_raw = D.raw_data_dict
 
     # Creation of a dictionnary to sort other info
-    __dict_parameters = dict()
-    __dict_parameters["H"] = ["H"]
-    __dict_parameters["w"] = ["w"]
-    __dict_parameters["t"] = ["t"]
-    __dict_parameters["L"] = ["L"]
-    __dict_parameters["mount"] = ["mount"]
-    __dict_parameters["sample"] = ["Sample", "sample"]
-    __dict_parameters["date"] = ["Date", "date"]
+    __dict_parameters = D.parameters_dict
 
     # Creation of an internal dictionnary used to match measurements to their
-    # respective axis titles to make the figures prettier.
-    __list_measures = list()
-    __list_parameters = list()
-    __dict_axis = dict()
-    __dict_axis["T_av"] = r"T ( K )"
-    __dict_axis["T0"] = r"$T_0$ ( K )"
-    __dict_axis["Tp"] = __dict_axis["T_av"]
-    __dict_axis["Tm"] = __dict_axis["T_av"]
-    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
-    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
-    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
-    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
-    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
-    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
-    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
-    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
-    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
-    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
-    __dict_axis["T0_fit"] = __dict_axis["T0"]
-    __dict_axis["I_fit"] = r"I ( mA )"
+    # respective axis titles     
+    __dict_axis = V.axis_labels
+    __dict_labels = V.legend_labels
 
-    # Same principle then before but for curve labels
-    __dict_labels = dict()
-    __dict_labels["H"] = r"H = %sT"
-    __dict_labels["sample"] = r"Sample: %s"
-    __dict_labels["date"] = r"%s"
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
         self.parameters = []
-
+        self.measures = []
+        # Check for some specific kwargs
         try:
             self["force_kxy"] = kwargs["force_kxy"]
             kwargs.pop("force_kxy")
@@ -132,298 +79,177 @@ class Conductivity():
         except KeyError:
             self["symmetrize"] = True
 
-        for key, value in kwargs.items():
-            setattr(self, "__"+key, value)
-            self.parameters.append(key)
-
         if sign in [1, -1]:
             self["sign"] = sign
         else:
             raise ValueError("Sign must be 1 or -1")
 
         if filename is not None:
-            self.__read_file(filename)
+            filename = os.path.abspath(filename)
+            self["filename"] = filename
 
-            if self["filetype"] == "raw_data":
-                dict_geo = {"w": w, "t": t, "L": L}
-                for key, value in dict_geo.items():
-                    setattr(self, "__"+key, value)
-                    self.parameters.append(key)
+            # Find info
+            self.__add_parameters(w,t,L)
 
-                if getattr(self, "__H") != "0.0" and self["symmetrize"] is True:
-                    self.__Symmetrize()
+            # If symetrize is True
+            if self["H"] != "0.0" and self["symmetrize"] is True:
+                filename2 = U.get_symetric_file(filename)
+                raw_data = self.__Symmetrize(filename, filename2)
+            elif self["H"] != "0.0" and self["symmetrize"] is False:
+                if filename.find("--") != -1:
+                    self["H"] = "-"+self["H"]
                 else:
                     pass
-                self.__Analyze()
-            else:
-                pass
 
+            else:
+                raw_data = U.read_file_raw(filename)
+
+            for key, values in raw_data.items():
+                self[key] = values
+
+            self.__Analyze()
             self.__add_measure()
 
+        # Remaining kwargs are set as parameters
+        for key, value in kwargs.items():
+            self[key] = value
+            self.parameters.append(key)
+
         return
 
-    def __Symmetrize(self):
-        sym = ["T0", "I", "R+_0", "R+_Q", "R-_0", "R-_Q",
-               "dTabs_0", "dTabs_Q", "dTx_0", "dTx_Q"]
+    def __Symmetrize(self, filename, filename2):
         anti_sym = ["dTy_0", "dTy_Q"]
 
-        for i in sym:
-            if i in self.raw_data:
-                self[i] = 0.5*(self[i][0]+self[i][1])
+        if filename.find("--") != -1:
+            filename, filename2 = filename2, filename
+        else:
+            pass
+
+        data = U.read_file_raw(filename)
+        data2 = U.read_file_raw(filename2)
+
+        sym_data = dict()
+
+        for key, values in data.items():
+            if key in data2:
+                if key in anti_sym:
+                    sym_data[key] = 0.5*(data[key]-data2[key])
+                else:
+                    sym_data[key] = 0.5*(data[key]+data2[key])
             else:
                 pass
-        for i in anti_sym:
-            if i in self.raw_data:
-                self[i] = 0.5*(self[i][0]-self[i][1])
-            else:
-                pass
-        return
+
+        return sym_data
 
     def __Analyze(self):
         # Probe Tallahasse
         if self["probe"] == "Tallahasse":
-            # Polyfit of R+ and R-
-            Cp = npp.polyfit(np.log(self["R+_0"]), np.log(self["T0"]), 8)
-            Cm = npp.polyfit(np.log(self["R-_0"]), np.log(self["T0"]), 8)
+            # Cut the uncalibrated points
             index = np.where(self["R+_Q"] < self["R+_0"][-1])
             for i in self.raw_data:
                 self[i] = np.delete(self[i], index)
+
             # Compute useful stuff
-            self["Tp"] = np.exp(npp.polyval(np.log(self["R+_Q"]), Cp))
-            self["Tm"] = np.exp(npp.polyval(np.log(self["R-_Q"]), Cm))
-            self["dTx"] = self["Tp"]-self["Tm"]
-            self["T_av"] = 0.5*(self["Tp"]+self["Tm"])
-            alpha = self["w"]*self["t"]/self["L"]
-            self["kxx"] = 5000*(self["I"])**2/self["dTx"]/alpha
-            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
-            if self["H"] != "0.0" or self["force_kxy"] is True:
-                S = seebeck_thermometry((self["T_av"]+self["T0"])/2)
-                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/1000/S
-                self["kxy"] = self["kxx"]*self["dTy"] / \
-                    self["dTx"]*self["L"]/self["w"]
-                self.measures += ["dTy", "kxy"]
-        # VTI
-        elif self["probe"] == "VTI":
-            Q = 5000*self["I"]**2
-            alpha = self["w"]*self["t"]/self["L"]
-            T_av = 0*Q
-            dT_abs = 0*Q
-            dTx = 0*Q
-            prev = T_av+1000
-            # Loop to converge towards actual temperatures
-            while abs(prev.sum()-T_av.sum()) > 1e-10:
-                prev = T_av
-                S1 = seebeck_thermometry((dT_abs/2+self["T0"]))
-                S2 = seebeck_thermometry(self["T0"]+dT_abs+dTx/2)
-                dT_abs = abs(self["dTabs_Q"]-self["dTabs_0"])/S1/1000
-                dTx = (self["dTx_Q"]-self["dTx_0"])/S2/1000
-                Tm = dT_abs+self["T0"]
-                Tp = Tm+dTx
-                T_av = Tm+dTx/2
+            # Get I and T0
+            I = self["I"]
+            T0 = self["T0"]
+
+            # Compute T+ and T-
+            Tp = F.tallahassee_temp(self["R+_0"], self["R+_Q"], T0)
+            Tm = F.tallahassee_temp(self["R-_0"], self["R-_Q"], T0)
+
+            # Compute T_av dTx and kxx
+            T_av = 0.5*(Tp+Tm)
+            dTx = (Tp-Tm)
+            kxx = F.compute_kxx(I, dTx, self["w"], self["t"], self["L"])
+
+            # Store values in self
+            self["kxx"] = kxx
+            self["dTx"] = dTx
             self["T_av"] = T_av
             self["Tp"] = Tp
             self["Tm"] = Tm
-            self["dTx"] = dTx
-            self["kxx"] = Q/self["dTx"]/alpha
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+
+            # Compute the transverse stuff
             if self["H"] != "0.0" or self["force_kxy"] is True:
-                S = seebeck_thermometry(T_av)
-                self["dTy"] = self["sign"]*(self["dTy_Q"]-self["dTy_0"])/S/1000
-                self["kxy"] = self["kxx"]*self["dTy"] / \
-                    self["dTx"]*self["L"]/self["w"]
+                # Compute dTy
+                Tr = T0+T_av/2  # Reference tempereature for the thermocouple
+                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy *= self["sign"]  # Apply the sign
+
+                # Compute kxy
+                kxy = F.compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
+
+                # Store in self
+                self["dTy"] = dTy
+                self["kxy"] = kxy
+                self.measures += ["dTy", "kxy"]
+
+        # VTI
+        elif self["probe"] == "VTI":
+
+            # Importing data
+            dTabs_0, dTabs_Q = self["dTabs_0"], self["dTabs_Q"]
+            dTx_0, dTx_Q = self["dTx_0"], self["dTx_Q"]
+            T0 = self["T0"]
+            I = self["I"]
+
+            # Computing everything
+            result = F.vti_calibration_loop(dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0)
+            kxx = F.compute_kxx(I, result[1], self["w"], self["t"], self["L"])
+
+            # Storing in self
+            self["kxx"] = kxx
+            self["T_av"] = result[0]
+            self["dTx"] = result[1]
+            self["Tp"] = result[2]
+            self["Tm"] = result[3]
+            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+
+            if self["H"] != "0.0" or self["force_kxy"] is True:
+                # Compute dTy
+                Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
+                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy *= self["sign"]  # Apply the sign
+
+                # Compute kxy
+                kxy = F.compute_kxy(
+                    kxx, self["dTx"], dTy, self["w"], self["L"])
+
+                # Store in self
+                self["dTy"] = dTy
+                self["kxy"] = kxy
                 self.measures += ["dTy", "kxy"]
 
         return
 
-    def __read_file(self, filename):
-        """
-        Used to read the file header and the data. Also detects the probe that
-        has been used for the measurement. Also detects if the data is raw or
-        already analyzed.
-        """
-        measures = []
+    def __add_parameters(self,width,thickness,length):
+
+        filename = self["filename"]
+        header = U.read_header(filename)
         parameters = []
-        raw_data = []
-        # Converting filename to an absolute path if it is relative
-        filename = os.path.abspath(filename)
-        self["filename"] = filename
 
-        # Extracting info from filename
-        # Date
-        date = "-".join(filename.split("/")[-1].split(".")[-2].split("-")[-3:])
-        setattr(self, "__date", date)
-        parameters.append("date")
+        # Geometric parameters
+        self["w"] = width
+        self["t"] = thickness
+        self["L"] = length
 
-        # Magnetic field
-        f = filename.split("/")[-1].split(".")
-        H = ".".join([f[0][-2:].replace("-", ""), f[1][0]])
-        if "H" != "0.0" and self["symmetrize"] is False:
-            if len(filename.split("--")) == 1:
-                pass
-            else:
-                H = "-"+H
-        setattr(self, "__H", H)
-        parameters.append("H")
-        if H == "0.0":
-            self["symmetrize"] = False
-        else:
-            pass
+        # Other parameters
+        self["H"] = U.find_H(filename, header)
+        self["date"] = U.find_date(filename, header)
+        self["mount"] = U.find_mount(filename, header)
+        self["sample"] = U.find_sample(filename, header)
+        self["probe"] = U.find_probe(filename, header)
 
-        # Sample name
-        if hasattr(self, "__sample") is False:
-            sample = list(filter(None, filename.split("/")[-1].split("-")))[-4]
-            setattr(self, "__sample", sample)
-            parameters.append("sample")
-        else:
-            pass
+        # Add to parameters
+        parameters += ["H","date","mount","sample","probe"]
+        parameters += ["w","t","L"]
 
-        # Mount
-        mount = list(filter(None, filename.split("/")[-1].split("-")))[-5]
-        setattr(self, "__mount", mount)
-        parameters.append("mount")
-
-        # Read the data
-        if H == "0.0" or self["symmetrize"] is False:
-            data = np.genfromtxt(filename, delimiter="\t").T
-        else:
-            if len(filename.split("--")) == 1:
-                filename2 = filename.replace("TS-", "TS--")
-                exist = os.path.isfile(filename2)
-                if exist is True:
-                    pass
-                else:
-                    filename3 = filename2
-                    dates = self.__Dates(date)
-                    for i in dates:
-                        filename3 = filename2.replace(date, i)
-                        exist = os.path.isfile(filename3)
-                        if exist is True:
-                            filename2 = filename3
-                            break
-                        else:
-                            pass
-                    if exist is False:
-                        filename2 = filename
-                    else:
-                        filename2 = filename3
-            else:
-                filename2 = filename
-                filename = filename2.replace("--", "-")
-                exist = os.path.isfile(filename)
-                if exist is True:
-                    pass
-                else:
-                    filename3 = filename
-                    dates = self.__Dates(date)
-                    for i in dates:
-                        filename3 = filename.replace(date, i)
-                        exist = os.path.isfile(filename3)
-                        if exist is True:
-                            filename = filename3
-                            break
-                        else:
-                            pass
-                    if exist is False:
-                        filename = filename2
-                    else:
-                        filename = filename3
-
-            if filename == filename2:
-                self["symmetrize"] = False
-            else:
-                pass
-            data = np.genfromtxt(filename, delimiter="\t").T
-            data2 = np.genfromtxt(filename2, delimiter="\t").T
-
-        # Reading all the lines in the header
-        lines = []
-
-        with open(filename) as f:
-            for i, line in enumerate(f):
-                l = line.split(" ")
-                if l[0] != "#":
-                    numbers = ["0", "1", "2", "3",
-                               "4", "5", "6", "7", "8", "9"]
-                    if l[0][0] in numbers:
-                        break
-                    else:
-                        lines.append(l[0].strip())
-                else:
-                    lines.append(line.strip()[2:])
-
-        # Makes sure there is a header
-        if len(lines) == 0:
-            raise Exception("No header detected, cannot analyze the data!")
-        else:
-            pass
-        # Detect probe or already treated data
-        for line in lines:
-            l = list(filter(None, line.split("\t")))
-            # Checks for comments shorter than the raw data header
-            if len(l) < 6:
-                for key, values in self.__dict_parameters.items():
-                    if l[0] in values:
-                        if hasattr(self, "__"+key) is False:
-                            setattr(self, "__"+key, l[-1])
-                            parameters.append(key)
-                        else:
-                            pass
-                    else:
-                        pass
-            else:
-                for key, values in self.__dict_raw.items():
-                    for i in range(len(l)):
-                        if l[i].strip() in values:
-                            if H != "0.0" and self["symmetrize"] is True:
-                                setattr(self, "__"+key, [data[i], data2[i]])
-                            else:
-                                setattr(self, "__"+key, data[i])
-                            raw_data.append(key)
-                        else:
-                            pass
-                        if len(raw_data) == 0:
-                            check_treated = True
-                            self["filetype"] = "treated"
-                        else:
-                            check_treated = False
-                            self["filetype"] = "raw_data"
-
-                if check_treated is True:
-                    for key, values in self.__dict_measures.items():
-                        for i in range(len(l)):
-                            if l[i].strip() in values:
-                                setattr(self, "__"+key, data[i])
-                                measures.append(key)
-                            else:
-                                pass
-                    if len(measures) == 0:
-                        raise Exception("No known measurements found")
-                    else:
-                        pass
-                else:
-                    pass
-
-                if self["filetype"] == "raw_data":
-                    self.datatype = "Raw"
-                    if "dTabs_0" in raw_data:
-                        self["probe"] = "VTI"
-                    else:
-                        self["probe"] = "Tallahasse"
-                elif self["filetype"] == "treated":
-                    self.datatype = "Treated"
-
-                self.lines = lines
-                self.parameters += parameters
-                self.measures = measures
-                self.raw_data = raw_data
+        self.parameters += parameters
 
         return
 
-    def __Dates(self, date):
-        d = datetime.date(*tuple([int(i) for i in date.split("-")]))
-        dates = ["%s" % (d+datetime.timedelta(i))
-                 for i in range(-2, 3) if i != 0]
-        return dates
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
@@ -640,7 +466,7 @@ class Conductivity():
         if len(fig.axes) == 1:
             fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
             plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="baseline", ha="left")
+                        2, va="bottom", ha="left")
         else:
             pass
 
@@ -661,7 +487,10 @@ class Conductivity():
         elif show is True:
             plt.show()
 
-        return fig, ax
+        if return_fig is True:
+            return fig, ax
+        else:
+            return
 
     def Plot_all(self, *args, **kwargs):
         """
@@ -753,7 +582,7 @@ class Conductivity():
         else:
             pass
 
-        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+        fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
 
         if filename is not None:
             filename = os.path.abspath(filename)
@@ -770,7 +599,7 @@ class Conductivity():
         Writes the treated data to a file
         """
         if filename is None:
-            if self["H"] == "0.0" or self["symmetrized"] is False:
+            if self["H"] == "0.0" or self["symmetrize"] is False:
                 filename = self["filename"].replace(".dat", "-treated.dat")
             else:
                 filename = self["filename"].replace(".dat", "-sym-treated.dat")
@@ -943,6 +772,9 @@ class Conductivity():
     def __delitem__(self, key):
         delattr(self, "__"+key)
         return
+
+    def Get_known_measures(self):
+        return list(self.__dict_measures.keys())
 
 ################################################################################
 #                       ____   ____ ____  ___ ____ _____                       #

@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from ThermalConductivity.Utilities import Database as D
 
 ################################################################################
 #                 ____ _        _    ____ ____  _____ ____                     #
@@ -36,31 +37,10 @@ class Measurement():
     """
 
     # Creation of a dictionnary to sort data
-    __dict_measures = dict()
-    __dict_measures["T_av"] = ["T_av(K)", "Taverage(K)", "T (K)"]
-    __dict_measures["T0"] = ["T0(K)", "T0 (K)"]
-    __dict_measures["Tp"] = ["T+(K)", "T+ (K)"]
-    __dict_measures["Tm"] = ["T-(K)", "T- (K)"]
-    __dict_measures["dTx"] = ["dTx(K)", "dTx (K)"]
-    __dict_measures["kxx"] = ["kxx(W/Km)", "k_xx(W/Km)", "Kxx (W / K m)"]
-    __dict_measures["kxy"] = ["kxy(W/mk)", "k_xy(W/Km)", "Kxy (W / K m)"]
-    __dict_measures["dTy"] = ["dTy(K)", "dTy (K)"]
-    __dict_measures["I"] = ["I(A)", "I (A)"]
-    __dict_measures["dTabs"] = ["dTabs", "dT_abs"]
-    __dict_measures["kxx/T"] = ["kxx/T"]
-    __dict_measures["Resistance"] = ["Resistance"]
-    __dict_measures["dTx/T"] = ["dTx/T"]
-    __dict_measures["Tp_Tm"] = ["Tp_Tm"]
+    __dict_measures = D.measurements_dict
 
     # Creation of a dictionnary to sort other info
-    __dict_parameters = dict()
-    __dict_parameters["H"] = ["H"]
-    __dict_parameters["w"] = ["w"]
-    __dict_parameters["t"] = ["t"]
-    __dict_parameters["L"] = ["L"]
-    __dict_parameters["mount"] = ["mount"]
-    __dict_parameters["sample"] = ["Sample", "sample"]
-    __dict_parameters["date"] = ["Date", "date"]
+    __dict_parameters = D.parameters_dict
 
     def __init__(self, filename=None, **kwargs):
         """
@@ -130,16 +110,17 @@ class Measurement():
                             pass
                 else:
                     for key, values in self.__dict_measures.items():
+
                         for i in range(len(l)):
                             if l[i].strip() in values:
                                 setattr(self, "__"+key, raw_data[i])
                                 self.measures.append(key)
                             else:
                                 pass
-                            if len(self.measures) == 0:
-                                raise Exception("No known measurements found")
-                            else:
-                                pass
+                    if len(self.measures) == 0:
+                        raise Exception("No known measurements found")
+                    else:
+                        pass
 
             if hasattr(self, "__sample") is False:
                 setattr(self, "__sample", "unknown")
@@ -616,9 +597,9 @@ class Data_Set():
 
         # If sample is the same for all measurements print it on the figure
         if len(fig.axes) == 1:
-            fig.tight_layout()
+            fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
             plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="baseline", ha="left")
+                        2, va="bottom", ha="left")
         else:
             pass
             # ax.set_title(self.__dict_axis[key].split("(")[0],fontsize=axis_fs)
