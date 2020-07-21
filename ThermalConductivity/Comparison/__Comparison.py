@@ -65,71 +65,36 @@ class Measurement():
 
         self.measures = []
         self.parameters = []
-        # Sets the values using the info provided
-        for key, value in kwargs.items():
-            setattr(self, "__"+key, value)
-            self.parameters.append(key)
-            try:
-                self.__dict_parameters[key]
-            except KeyError:
-                self.__dict_parameters[key] = [key]
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            raw_data = np.genfromtxt(filename, delimiter="\t", skip_header=1).T
-            lines = []
-            with open(filename) as f:
-                for i, line in enumerate(f):
-                    l = line.split(" ")
-                    if l[0] != "#":
-                        numbers = ["0", "1", "2", "3",
-                                   "4", "5", "6", "7", "8", "9"]
-                        if l[0][0] in numbers:
-                            break
-                        else:
-                            lines.append(l[0].strip())
-                    else:
-                        lines.append(line.strip()[2:])
+            data = U.read_file_treated(filename)
+            header = U.read_header(filename)
+            for key, value in data.items():
+                self[key] = value
+                self.measures.append(key)
 
-            # Should contain all the comment lines without trailing \n and
-            #starting #
-            self.lines = lines
+                self["H"] = U.find_H(filename, header)
+                self["date"] = U.find_date(filename, header)
+                self["mount"] = U.find_mount(filename, mount)
+                self["sample"] = U.find_sample(filename, header)
+                self["probe"] = U.find_probe(filename, header)
 
-            # Separate misc comments from the actual header
-            for line in self.lines:
-                l = line.split("\t")
-                if len(l) < 6:
-                    for key, values in self.__dict_parameters.items():
-                        if l[0] in values:
-                            if hasattr(self, "__"+key) is False:
-                                setattr(self, "__"+key, l[-1])
-                                self.parameters.append(key)
-                            else:
-                                pass
-                        else:
-                            pass
-                else:
-                    for key, values in self.__dict_measures.items():
+                self.parameters += ["H", "date", "mount", "sample", "probe"]
 
-                        for i in range(len(l)):
-                            if l[i].strip() in values:
-                                setattr(self, "__"+key, raw_data[i])
-                                self.measures.append(key)
-                            else:
-                                pass
-                    if len(self.measures) == 0:
-                        raise Exception("No known measurements found")
-                    else:
-                        pass
+        for key, value in kwargs.items():
+            self[key] = value
+            if key not in self.parameters:
+                self.parameters.append(key)
 
-            if hasattr(self, "__sample") is False:
-                setattr(self, "__sample", "unknown")
-            else:
-                pass
-            if hasattr(self, "__H") is False:
-                setattr(self, "__H", "unknown")
-            else:
-                pass
+        if hasattr(self, "__sample") is False:
+            setattr(self, "__sample", "unknown")
+        else:
+            pass
+        if hasattr(self, "__H") is False:
+            setattr(self, "__H", "unknown")
+        else:
+            pass
 
         self.__add_measure()
 
@@ -233,29 +198,8 @@ class Data_Set():
 
     # Creation of an internal dictionnary used to match measurements to their
     # respective axis titles to make the figures prettier.
-    __list_measures = list()
-    __list_parameters = list()
-    __dict_axis = dict()
-    __dict_axis["T_av"] = r"T ( K )"
-    __dict_axis["T0"] = r"$T_0$ ( K )"
-    __dict_axis["Tp"] = __dict_axis["T_av"]
-    __dict_axis["Tm"] = __dict_axis["T_av"]
-    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
-    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
-    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
-    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
-    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
-    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
-    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
-    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
-    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
-    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
-
-    # Same principle then before but for curve labels
-    __dict_labels = dict()
-    __dict_labels["H"] = r"H = %sT"
-    __dict_labels["sample"] = r"Sample: %s"
-    __dict_labels["date"] = r"%s"
+    __dict_axis = V.axis_labels
+    __dict_labels = V.legend_labels
 
     def __init__(self, measurements=None):
         """
@@ -420,34 +364,138 @@ class Data_Set():
 
         return
 
-    def __create_grid(self, measures):
-        n = len(measures)
+    def Plot_new(self, key, *args, **kwargs):
+        """
+        Used as a layer between the object and Visualization.Plot
 
-        if n % 2 == 0:
-            N = n//2
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = ax.flatten().tolist()
+        Parameters:
+        ------------------------------------------------------------------------
+        key:        string
+                    The measurement to plot
+
+        Kwargs:
+        ------------------------------------------------------------------------
+        show:       Bool
+                    Determines if the figure is shown ore closed defaults to True
+
+        parameters: list
+                    list of parameters to be used for legends
+
+        axis_fs:    Int
+                    The axis labels fontsize
+
+        fig:        matplotlib.figure
+                    Used to draw on an existing figure, requires ax
+
+        ax:         matplotlib.ax
+                    Used to draw on an existing figure, requires fig
+
+        x_axis:     string
+                    The measurement to use as x-axis defaults to T_av
+        """
+
+        # Deal with kwargs
+        if "fig" in kwargs:
+            return_fig = False
         else:
-            N = n//2+1
-            s = (N, 4)
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = []
-            loc = (0, 0)
-            for i in range(n):
+            return_fig = True
 
-                if i != 0:
-                    if i != n-1:
-                        if int(loc[1]) == 0:
-                            loc = (loc[0], 2)
-                        elif int(loc[1]) == 2:
-                            loc = (loc[0]+1, 0)
-                    else:
-                        loc = (N-1, 1)
+        if "x_axis" in kwargs:
+            x_axis = kwargs["x_axis"]
+            kwargs.pop("x_axis")
+            if x_axis in self.measures:
+                pass
+            else:
+                raise Exception("x_axis must be in self.measures")
+        else:
+            x_axis = "T_av"
+
+        if "figtext" not in kwargs:
+            kwargs["figtext"] = self["sample"]
+        else:
+            pass
+
+        if "parameters" in kwargs:
+            parameters = dict()
+            parameters_list = kwargs["parameters"]
+            kwargs.pop("parameters")
+            for p in parameters_list:
+                if p in self.parameters:
+                    parameters[p] = self[p]
                 else:
-                    pass
-                axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
+                    raise Exception("parameters must be in self.parameters")
+        else:
+            parameters = dict()
 
-        return fig, axes
+        kwargs["parameters"] = parameters
+
+        if key != "Tp_Tm":
+
+            if "show" in kwargs:
+                show = kwargs["show"]
+                kwargs["show"] = None
+            else:
+                kwargs["show"] = None
+
+            for i in range(len(self.measurements)):
+
+                xdata, xkey = self.measurements[i][x_axis], x_axis
+                ydata, ykey = self.measurements[i][key], key
+
+                if i == 0:
+                    fig, ax = V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+                elif i < len(self.measurements)-1:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+                else:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    kwargs["show"] = show
+                    V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+        else:
+            if "show" in kwargs:
+                show = kwargs["show"]
+                kwargs["show"] = None
+            else:
+                kwargs["show"] = None
+
+            for i in range(len(self.measurements)):
+                xdata, xkey = self.measurements[x_axis], x_axis
+                ydata1, ykey1 = self.measurements["Tp"], "Tp"
+                ydata2, ykey2 = self.measurements["Tm"], "Tm"
+
+                if i == 0:
+                    kwargs["parameters"]["which"] = r"T$^{+}$"
+                    fig, ax = V.Plot(xdata, ydata1, xkey,
+                                     ykey1, *args, **kwargs)
+
+                    kwargs["parameters"]["which"] = r"T$^{-}$"
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    fig, ax = V.Plot(xdata, ydata2, xkey,
+                                     ykey2, *args, **kwargs)
+                elif i < len(self.measurements)-1:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    kwargs["parameters"]["which"] = r"T$^{+}$"
+                    V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
+
+                    kwargs["parameters"]["which"] = r"T$^{-}$"
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
+
+                else:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    kwargs["show"] = show
+                    kwargs["parameters"]["which"] = r"T$^{+}$"
+                    V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
+
+                    kwargs["parameters"]["which"] = r"T$^{-}$"
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
+
+        if return_fig is False:
+            return
+
+        else:
+            return fig, ax
 
     def Plot(self, key, *args, **kwargs):
         """

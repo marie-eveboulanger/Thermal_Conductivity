@@ -57,6 +57,7 @@ class Conductivity():
 
         self.parameters = []
         self.measures = []
+        self.raw_data = []
         # Check for some specific kwargs
         try:
             self["force_kxy"] = kwargs["force_kxy"]
@@ -105,6 +106,7 @@ class Conductivity():
 
             for key, values in raw_data.items():
                 self[key] = values
+                self.raw_data.append(key)
 
             self.__Analyze()
             self.__add_measure()
@@ -317,6 +319,11 @@ class Conductivity():
         """
 
         # Deal with kwargs
+        if "fig" in kwargs:
+            return_fig = False
+        else:
+            return_fig = True
+
         if "x_axis" in kwargs:
             x_axis = kwargs["x_axis"]
             kwargs.pop("x_axis")
@@ -359,8 +366,11 @@ class Conductivity():
             ydata1, ykey1 = self["Tp"], "Tp"
             ydata2, ykey2 = self["Tm"], "Tm"
 
-            show = kwargs["show"]
-            kwargs["show"] = None
+            if "show" in kwargs:
+                show = kwargs["show"]
+                kwargs["show"] = None
+            else:
+                kwargs["show"] = None
             kwargs["parameters"]["which"] = r"T$^{+}$"
             fig, ax = V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
 
@@ -368,8 +378,6 @@ class Conductivity():
             kwargs["parameters"]["which"] = r"T$^{-}$"
             kwargs["fig"], kwargs["ax"] = fig, ax
             fig, ax = V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
-            kwargs.pop("fig")
-            kwargs.pop("ax")
 
         if "fig" in kwargs:
             return
@@ -475,7 +483,7 @@ class Conductivity():
         else:
             filename = os.path.abspath(filename)
 
-        parameters1 = ["sample", "date", "mount", "H"]
+        parameters1 = ["sample", "date", "mount", "probe", "H"]
         parameters2 = ["w", "t", "L"]
         measures = ["T_av", "T0", "Tp", "Tm", "dTx", "kxx", "dTy", "kxy"]
         columns = ["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
