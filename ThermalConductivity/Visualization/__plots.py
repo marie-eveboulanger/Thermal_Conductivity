@@ -93,7 +93,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
             labels = []
             for key in parameters:
                 if type(parameters[key]) is str:
-                    if key in axis_labels:
+                    if key in legend_labels:
                         labels.append(legend_labels[key] % (parameters[key]))
                     else:
                         labels.append(parameters[key])
