@@ -729,7 +729,8 @@ class Data_Set():
                     "dTx/T", "dTy/dTx", "Resistance"]
         measures = [i for i in ref_meas if i in measures]
 
-        fig, ax = self.__create_grid(measures)
+        n = len(measures)
+        fig, ax = V.create_grid(n)
 
         try:
             kwargs.pop("show")
@@ -752,7 +753,7 @@ class Data_Set():
         except KeyError:
             filename = None
 
-        for i in range(len(measures)):
+        for i in range(n):
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
 
