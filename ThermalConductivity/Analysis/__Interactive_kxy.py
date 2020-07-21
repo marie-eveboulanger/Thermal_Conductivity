@@ -286,36 +286,7 @@ class Conductivity():
 
         return
 
-    def __create_grid(self, measures):
-        n = len(measures)
-
-        if n % 2 == 0:
-            N = n//2
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = ax.flatten().tolist()
-        else:
-            N = n//2+1
-            s = (N, 4)
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = []
-            loc = (0, 0)
-            for i in range(n):
-
-                if i != 0:
-                    if i != n-1:
-                        if int(loc[1]) == 0:
-                            loc = (loc[0], 2)
-                        elif int(loc[1]) == 2:
-                            loc = (loc[0]+1, 0)
-                    else:
-                        loc = (N-1, 1)
-                else:
-                    pass
-                axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
-
-        return fig, axes
-
-    def Plot_new(self, key, *args, **kwargs):
+    def Plot(self, key, *args, **kwargs):
         """
         Used as a layer between the object and Visualization.Plot
 
@@ -381,7 +352,7 @@ class Conductivity():
         else:
             return fig, ax
 
-    def Plot(self, key, *args, **kwargs):
+    def Plot_old(self, key, *args, **kwargs):
         """
         Plots data corresponding to key.
 
@@ -624,7 +595,9 @@ class Conductivity():
                     "dTx/T", "dTy", "dTy/dTx", "Resistance", "Tp_Tm"]
         measures = [i for i in ref_meas if i in measures]
 
-        fig, ax = self.__create_grid(measures)
+        n = len(measures)
+
+        fig, ax = self.__create_grid(n)
 
         try:
             kwargs.pop("show")
@@ -637,7 +610,7 @@ class Conductivity():
         except KeyError:
             filename = None
 
-        for i in range(len(measures)):
+        for i in range(n):
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
 
