@@ -367,7 +367,7 @@ class Conductivity():
             kwargs.pop("ax")
 
         if len(fig.axes) == 1:
-            plt.figtext(0.05, 0.005, self["sample"], fontsize=axis_fs,
+            plt.figtext(0.05, 0.005, self["sample"], fontsize=15,
                         va="bottom", ha="left")
 
         if "fig" in kwargs:
