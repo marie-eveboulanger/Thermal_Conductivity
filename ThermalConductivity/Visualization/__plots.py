@@ -73,7 +73,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         if type(show) is bool:
             pass
         else:
-            if type(show) is None:
+            if show is None:
                 pass
             else:
                 raise TypeError("show must be bool or None")
