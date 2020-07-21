@@ -162,7 +162,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     return fig, ax
 
 
-def create_grid(self, n):
+def create_grid(n):
     """
     Used to create a grid of n suplots
     """
