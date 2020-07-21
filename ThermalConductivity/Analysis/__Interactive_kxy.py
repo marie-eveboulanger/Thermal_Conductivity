@@ -469,7 +469,7 @@ class Conductivity():
         else:
             pass
 
-        fig.tight_layout(rect=[0.01, 0.01, 1, 0.98])
+        fig.tight_layout(rect=[0.01, 0.01, 1, 0.96])
 
         if filename is not None:
             filename = os.path.abspath(filename)
