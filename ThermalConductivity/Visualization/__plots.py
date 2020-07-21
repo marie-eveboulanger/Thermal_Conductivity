@@ -112,7 +112,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     else:
         label = ""
 
-    if fig in kwargs and ax in kwargs:
+    if "fig" in kwargs and "ax" in kwargs:
         fig, ax = kwargs["fig"], kwargs["ax"]
         kwargs.pop("fig")
         kwargs.pop("ax")
