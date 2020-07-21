@@ -83,6 +83,12 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     else:
         axis_fs = 16
 
+    if "figtext" in kwargs:
+        figtext = kwargs["figtext"]
+        kwargs.pop("figtext")
+    else:
+        figtext = None
+
     if "parameters" in kwargs:
         parameters = kwargs["parameters"]
         kwargs.pop("parameters")
@@ -149,6 +155,12 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
 
     if len(fig.axes) == 1:
         fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
+    else:
+        pass
+
+    if figtext is not None:
+        plt.figtext(0.05, 0.005, figtext, fontsize=axis_fs,
+                    va="bottom", ha="left")
     else:
         pass
 

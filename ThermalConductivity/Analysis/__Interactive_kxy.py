@@ -327,6 +327,11 @@ class Conductivity():
         else:
             x_axis = "T_av"
 
+        if "figtext" not in kwargs:
+            kwargs["figtext"] = self["sample"]
+        else:
+            pass
+
         if "parameters" in kwargs:
             parameters = dict()
             parameters_list = kwargs["parameters"]
@@ -365,10 +370,6 @@ class Conductivity():
             fig, ax = V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
             kwargs.pop("fig")
             kwargs.pop("ax")
-
-        if len(fig.axes) == 1:
-            plt.figtext(0.05, 0.005, self["sample"], fontsize=15,
-                        va="bottom", ha="left")
 
         if "fig" in kwargs:
             return
