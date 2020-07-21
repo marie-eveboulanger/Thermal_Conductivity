@@ -537,15 +537,18 @@ class Data_Set():
         except KeyError:
             filename = None
 
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
+
         for key in measures:
             figures.append(self.Plot(key, *args, **kwargs)[0])
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            for i in figures:
-                pp.savefig(i)
-            pp.close()
+            U.save_to_pdf(filename, figures, overwrite=overwrite)
         else:
             pass
 
@@ -591,12 +594,18 @@ class Data_Set():
         except KeyError:
             filename = None
 
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
+
         for i in range(n):
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
 
         if sample is not None:
-            plt.suptitle(sample, fontsize=22)
+            plt.suptitle(sample, y=0.95, fontsize=22)
         else:
             pass
 
@@ -604,9 +613,7 @@ class Data_Set():
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            pp.savefig(fig)
-            pp.close()
+            U.save_to_pdf(filename, fig, overwrite=overwrite)
         else:
             pass
 
