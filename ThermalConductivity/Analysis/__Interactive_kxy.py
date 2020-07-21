@@ -315,7 +315,6 @@ class Conductivity():
         x_axis:     string
                     The measurement to use as x-axis defaults to T_av
         """
-        # fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
 
         # Deal with kwargs
         if "x_axis" in kwargs:
@@ -366,6 +365,9 @@ class Conductivity():
             fig, ax = V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
             kwargs.pop("fig")
             kwargs.pop("ax")
+
+        plt.figtext(0.05, 0.005, sample, fontsize=axis_fs,
+                    va="bottom", ha="left")
 
         if "fig" in kwargs:
             return
