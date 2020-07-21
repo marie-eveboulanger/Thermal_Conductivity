@@ -371,6 +371,7 @@ class Conductivity():
                 kwargs["show"] = None
             else:
                 kwargs["show"] = None
+                show = True
             kwargs["parameters"]["which"] = r"T$^{+}$"
             fig, ax = V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
 

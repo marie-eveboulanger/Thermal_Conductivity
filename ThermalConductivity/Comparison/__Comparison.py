@@ -448,6 +448,7 @@ class Data_Set():
                 kwargs["show"] = None
             else:
                 kwargs["show"] = None
+                show = True
 
             for i in range(len(self.measurements)):
 
@@ -469,6 +470,7 @@ class Data_Set():
                 kwargs["show"] = None
             else:
                 kwargs["show"] = None
+                show = True
 
             for i in range(len(self.measurements)):
                 xdata, xkey = self.measurements[x_axis], x_axis
