@@ -8,6 +8,7 @@ import datetime
 import re
 import numpy as np
 import ThermalConductivity.Utilities.Database as D
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 def get_symetric_file(filename, days=3):
@@ -482,3 +483,119 @@ def read_parameters(header):
                 pass
 
     return parameters
+
+
+def write_to_file(filename, data, header, overwrite="ask", create_dir="ask"):
+    """
+    Writes data to a file and creates the needed directories.
+    Also checks to prevent overwrites
+    """
+
+    # Gets the absolute path
+    filename = os.path.abspath(filename)
+    directory = os.path.split(filename)[0]
+
+    # Checks if directory exists
+    if os.path.isdir(directory) is True:
+        pass
+    elif os.path.isdir(directory) is False and create_dir == "ask":
+        dir_ = directory
+        answer = input(
+            "Do you want to create the following directory: %s (Y/n)?" % dir_)
+        if answer in ["Y", "y", "", "yes", "Yes"]:
+            os.makedirs(directory)
+            print("Created directory: %s" % directory)
+        else:
+            print("Could not create directory, aborting")
+            return
+    elif os.path.isdir(directory) is False and create_dir is True:
+        os.makedirs(directory)
+        print("Created directory: %s" % directory)
+
+    elif os.path.isdir(directory) is False and create_dir is False:
+        print("Could not create directory, aborting")
+        return
+
+    # Checks if file exists
+    if os.path.isfile(filename) is False:
+        pass
+    elif os.path.isfile(filename) is True and overwrite == "ask":
+        answer = input(
+            "Do you want to overwrite the following file: %s (Y/n)?" % filename)
+        if answer in ["Y", "y", "", "yes", "Yes"]:
+            np.savetxt(filename, data, delimiter="\t",
+                       header=header, fmt="%.6e")
+            print("Overwrote file: %s" % filename)
+        else:
+            print("Could not overwrite file, aborting")
+            return
+    elif os.path.isfile(filename) is True and overwrite is True:
+        np.savetxt(filename, data, delimiter="\t", header=header, fmt="%.6e")
+
+    elif os.path.isfile(filename) is True and overwrite is False:
+        print("Could not overwrite file, aborting")
+        return
+
+    return
+
+
+def save_to_pdf(filename, figures, overwrite="ask", create_dir="ask"):
+    """
+    Saves figure to a pdf and creates the needed directories.
+    Also checks to prevent overwrites
+    """
+
+    if type(figures) is not list:
+        figures = [figures]
+
+    # Gets the absolute path
+    filename = os.path.abspath(filename)
+    directory = os.path.split(filename)[0]
+
+    # Checks if directory exists
+    if os.path.isdir(directory) is True:
+        pass
+    elif os.path.isdir(directory) is False and create_dir == "ask":
+        dir_ = directory
+        answer = input(
+            "Do you want to create the following directory: %s (Y/n)?" % dir_)
+        if answer in ["Y", "y", "", "yes", "Yes"]:
+            os.makedirs(directory)
+            print("Created directory: %s" % directory)
+        else:
+            print("Could not create directory, aborting")
+            return
+    elif os.path.isdir(directory) is False and create_dir is True:
+        os.makedirs(directory)
+        print("Created directory: %s" % directory)
+
+    elif os.path.isdir(directory) is False and create_dir is False:
+        print("Could not create directory, aborting")
+        return
+
+    # Checks if file exists
+    if os.path.isfile(filename) is False:
+        pass
+    elif os.path.isfile(filename) is True and overwrite == "ask":
+        answer = input(
+            "Do you want to overwrite the following file: %s (Y/n)?" % filename)
+        if answer in ["Y", "y", "", "yes", "Yes"]:
+            pp = PdfPages(filename)
+            for fig in figures:
+                pp.savefig(fig)
+            pp.close()
+            print("Overwrote file: %s" % filename)
+        else:
+            print("Could not overwrite file, aborting")
+            return
+    elif os.path.isfile(filename) is True and overwrite is True:
+        pp = PdfPages(filename)
+        for fig in figures:
+            pp.savefig(fig)
+        pp.close()
+
+    elif os.path.isfile(filename) is True and overwrite is False:
+        print("Could not overwrite file, aborting")
+        return
+
+    return
