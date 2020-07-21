@@ -473,9 +473,9 @@ class Data_Set():
                 show = True
 
             for i in range(len(self.measurements)):
-                xdata, xkey = self.measurements[x_axis], x_axis
-                ydata1, ykey1 = self.measurements["Tp"], "Tp"
-                ydata2, ykey2 = self.measurements["Tm"], "Tm"
+                xdata, xkey = self.measurements[i][x_axis], x_axis
+                ydata1, ykey1 = self.measurements[i]["Tp"], "Tp"
+                ydata2, ykey2 = self.measurements[i]["Tm"], "Tm"
 
                 if i == 0:
                     kwargs["parameters"]["which"] = r"T$^{+}$"
