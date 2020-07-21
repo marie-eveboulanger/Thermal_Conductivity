@@ -163,3 +163,35 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         pass
 
     return fig, ax
+
+
+def create_grid(self, n):
+    """
+    Used to create a grid of n suplots
+    """
+
+    if n % 2 == 0:
+        N = n//2
+        fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+        axes = ax.flatten().tolist()
+    else:
+        N = n//2+1
+        s = (N, 4)
+        fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+        axes = []
+        loc = (0, 0)
+        for i in range(n):
+
+            if i != 0:
+                if i != n-1:
+                    if int(loc[1]) == 0:
+                        loc = (loc[0], 2)
+                    elif int(loc[1]) == 2:
+                        loc = (loc[0]+1, 0)
+                else:
+                    loc = (N-1, 1)
+            else:
+                pass
+            axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
+
+    return fig, axes

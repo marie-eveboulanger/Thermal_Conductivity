@@ -49,10 +49,9 @@ class Conductivity():
     __dict_parameters = D.parameters_dict
 
     # Creation of an internal dictionnary used to match measurements to their
-    # respective axis titles     
+    # respective axis titles
     __dict_axis = V.axis_labels
     __dict_labels = V.legend_labels
-
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
@@ -89,7 +88,7 @@ class Conductivity():
             self["filename"] = filename
 
             # Find info
-            self.__add_parameters(w,t,L)
+            self.__add_parameters(w, t, L)
 
             # If symetrize is True
             if self["H"] != "0.0" and self["symmetrize"] is True:
@@ -224,7 +223,7 @@ class Conductivity():
 
         return
 
-    def __add_parameters(self,width,thickness,length):
+    def __add_parameters(self, width, thickness, length):
 
         filename = self["filename"]
         header = U.read_header(filename)
@@ -243,13 +242,12 @@ class Conductivity():
         self["probe"] = U.find_probe(filename, header)
 
         # Add to parameters
-        parameters += ["H","date","mount","sample","probe"]
-        parameters += ["w","t","L"]
+        parameters += ["H", "date", "mount", "sample", "probe"]
+        parameters += ["w", "t", "L"]
 
         self.parameters += parameters
 
         return
-
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
@@ -316,6 +314,72 @@ class Conductivity():
                 axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
 
         return fig, axes
+
+    def Plot_new(self, key, *args, **kwargs):
+        """
+        Used as a layer between the object and Visualization.Plot
+
+        Parameters:
+        ------------------------------------------------------------------------
+        key:        string
+                    The measurement to plot
+
+        Kwargs:
+        ------------------------------------------------------------------------
+        show:       Bool
+                    Determines if the figure is shown ore closed defaults to True
+
+        parameters: list
+                    list of parameters to be used for legends
+
+        axis_fs:    Int
+                    The axis labels fontsize
+
+        fig:        matplotlib.figure
+                    Used to draw on an existing figure, requires ax
+
+        ax:         matplotlib.ax
+                    Used to draw on an existing figure, requires fig
+
+        x_axis:     string
+                    The measurement to use as x-axis defaults to T_av
+        """
+
+        # Deal with kwargs
+        if "x_axis" in kwargs:
+            x_axis = kwargs["x_axis"]
+            kwargs.pop("x_axis")
+            if x_axis in self.measures:
+                pass
+            else:
+                raise Exception("x_axis must be in self.measures")
+        else:
+            x_axis = "T_av"
+
+        if "parameters" in kwargs:
+            parameters = dict()
+            parameters_list = kwargs["parameters"]
+            kwargs.pop("parameters")
+            for p in parameters_list:
+                if p in self.parameters:
+                    parameters[p] = self[p]
+                else:
+                    raise Exception("parameters must be in self.parameters")
+        else:
+            parameters = dict()
+
+        kwargs["parameters"] = parameters
+
+        xdata, xkey = self[x_axis], x_axis
+        ydata, ykey = self[key], key
+
+        fig, ax = V.Plot(x_data, ydata, xkey, ykey, *args, **kwargs)
+
+        if "fig" in kwargs:
+            return
+
+        else:
+            return fig, ax
 
     def Plot(self, key, *args, **kwargs):
         """
