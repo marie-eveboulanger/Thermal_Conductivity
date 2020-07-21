@@ -21,6 +21,7 @@ from ThermalConductivity.Analysis import Functions as F
 from ThermalConductivity import Utilities as U
 from ThermalConductivity.Utilities import Database as D
 from ThermalConductivity.Thermometry import seebeck_thermometry
+from ThermalConductivity import Visualization as V
 
 ################################################################################
 #                          ____ _        _    ____ ____                        #
@@ -48,32 +49,10 @@ class Conductivity():
     __dict_parameters = D.parameters_dict
 
     # Creation of an internal dictionnary used to match measurements to their
-    # respective axis titles to make the figures prettier.
-    __list_measures = list()
-    __list_parameters = list()
-    __dict_axis = dict()
-    __dict_axis["T_av"] = r"T ( K )"
-    __dict_axis["T0"] = r"$T_0$ ( K )"
-    __dict_axis["Tp"] = __dict_axis["T_av"]
-    __dict_axis["Tm"] = __dict_axis["T_av"]
-    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
-    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
-    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
-    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
-    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
-    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
-    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
-    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
-    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
-    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
-    __dict_axis["T0_fit"] = __dict_axis["T0"]
-    __dict_axis["I_fit"] = r"I ( mA )"
+    # respective axis titles     
+    __dict_axis = V.axis_labels
+    __dict_labels = V.legend_labels
 
-    # Same principle then before but for curve labels
-    __dict_labels = dict()
-    __dict_labels["H"] = r"H = %sT"
-    __dict_labels["sample"] = r"Sample: %s"
-    __dict_labels["date"] = r"%s"
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
