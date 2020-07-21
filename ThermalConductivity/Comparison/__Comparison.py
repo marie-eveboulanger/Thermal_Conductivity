@@ -397,6 +397,16 @@ class Data_Set():
         """
 
         # Deal with kwargs
+        # Tries to find sample name
+        if "sample" in self.parameters:
+            sample = self.measurements[0]["sample"]
+            for m in self.measurements:
+                if sample == m["sample"]:
+                    pass
+                else:
+                    sample = None
+                    break
+
         if "fig" in kwargs:
             return_fig = False
         else:
@@ -413,7 +423,7 @@ class Data_Set():
             x_axis = "T_av"
 
         if "figtext" not in kwargs:
-            kwargs["figtext"] = self["sample"]
+            kwargs["figtext"] = sample
         else:
             pass
 
