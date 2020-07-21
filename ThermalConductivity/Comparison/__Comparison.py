@@ -503,10 +503,10 @@ class Data_Set():
 
                 else:
                     kwargs["fig"], kwargs["ax"] = fig, ax
-                    kwargs["show"] = show
                     kwargs["parameters"]["which"] = r"T$^{+}$"
                     V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
 
+                    kwargs["show"] = show
                     kwargs["parameters"]["which"] = r"T$^{-}$"
                     kwargs["fig"], kwargs["ax"] = fig, ax
                     V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
