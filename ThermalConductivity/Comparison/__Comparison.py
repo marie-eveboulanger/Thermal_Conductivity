@@ -78,7 +78,7 @@ class Measurement():
 
                 self["H"] = U.find_H(filename, header)
                 self["date"] = U.find_date(filename, header)
-                self["mount"] = U.find_mount(filename, mount)
+                self["mount"] = U.find_mount(filename, header)
                 self["sample"] = U.find_sample(filename, header)
                 self["probe"] = U.find_probe(filename, header)
 
