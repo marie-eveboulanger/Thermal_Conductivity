@@ -159,8 +159,8 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         pass
 
     if figtext is not None:
-        plt.figtext(0.05, 0.005, figtext, fontsize=axis_fs,
-                    va="top", ha="left")
+        plt.figtext(0.05, 0.05, figtext, fontsize=axis_fs,
+                    va="bottom", ha="left")
     else:
         pass
 
