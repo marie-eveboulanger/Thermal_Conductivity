@@ -70,13 +70,10 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     if "show" in kwargs:
         show = kwargs["show"]
         kwargs.pop("show")
-        if type(show) is bool:
+        if type(show) is bool or show is None:
             pass
         else:
-            if show is None:
-                pass
-            else:
-                raise TypeError("show must be bool or None")
+            raise TypeError("show must be bool or None")
     else:
         show = True
 
