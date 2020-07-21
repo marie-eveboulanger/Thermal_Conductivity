@@ -122,6 +122,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         kwargs.pop("fig")
         kwargs.pop("ax")
         return_fig = False
+        figtext = None
     else:
         fig, ax = plt.subplots(figsize=(8, 4.5))
         return_fig = True
@@ -155,7 +156,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     else:
         pass
 
-    if figtext is not None and len(fig.axes) == 1 and return_fig is True:
+    if figtext is not None and len(fig.axes) == 1:
         plt.figtext(0.05, 0.01, figtext, fontsize=axis_fs,
                     va="bottom", ha="left")
     else:
