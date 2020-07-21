@@ -131,10 +131,12 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
 
     if ydata.min()*ydata.max() < 0:
         ax.axhline(0, ls="--", color="k", lw=2)
-    else:
+    elif ydata.max()*ydata.min() > 0:
         if ydata.min() >= 0:
+            ax.autoscale(enable=True, axis="y")
             ax.set_ylim(0, ax.get_ylim()[1])
         else:
+            ax.autoscale(enable=True, axis="y")
             ax.set_ylim(ax.get_ylim()[0], 0)
 
     if xkey in ["T_av", "T0"]:
