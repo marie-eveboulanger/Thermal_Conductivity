@@ -88,6 +88,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
 
     if "parameters" in kwargs:
         parameters = kwargs["parameters"]
+        kwargs.pop("parameters")
         if type(parameters) is dict:
             labels = []
             for key in parameters:
@@ -110,6 +111,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
             raise TypeError("parameters must be dict containing strings")
 
     else:
+        label_size = 0
         label = ""
 
     if "fig" in kwargs and "ax" in kwargs:
