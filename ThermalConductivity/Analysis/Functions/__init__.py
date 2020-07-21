@@ -3,5 +3,5 @@ from ThermalConductivity.Analysis.Functions.__functions import (
     compute_kxy,
     compute_thermocouple,
     tallahassee_temp,
-    vti_calibration_loop
+    vti_thermocouple_calibration_loop
 )
