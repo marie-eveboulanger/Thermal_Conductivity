@@ -341,10 +341,27 @@ class Conductivity():
 
         kwargs["parameters"] = parameters
 
-        xdata, xkey = self[x_axis], x_axis
-        ydata, ykey = self[key], key
+        if key != "Tp_Tm":
 
-        fig, ax = V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+            xdata, xkey = self[x_axis], x_axis
+            ydata, ykey = self[key], key
+
+            fig, ax = V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+
+        else:
+
+            xdata, xkey = self[x_axis], x_axis
+            ydata1, ykey1 = self["Tp"], "Tp"
+            ydata2, ykey2 = self["Tm"], "Tm"
+
+            show = kwargs["show"]
+            kwargs["show"] = None
+            kwargs["parameters"]["which"] = r"T$^{+}$"
+            fig, ax = V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
+
+            kwargs["show"] = show
+            kwargs["parameters"]["which"] = r"T$^{-}$"
+            fig, ax = V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
 
         if "fig" in kwargs:
             return
