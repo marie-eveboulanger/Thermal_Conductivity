@@ -155,7 +155,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     else:
         pass
 
-    if figtext is not None and len(fig.axes) == 1:
+    if figtext is not None and len(fig.axes) == 1 and return_fig is True:
         plt.figtext(0.05, 0.01, figtext, fontsize=axis_fs,
                     va="bottom", ha="left")
     else:
