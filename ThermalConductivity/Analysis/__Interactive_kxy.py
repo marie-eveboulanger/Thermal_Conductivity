@@ -315,6 +315,7 @@ class Conductivity():
         x_axis:     string
                     The measurement to use as x-axis defaults to T_av
         """
+        # fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
 
         # Deal with kwargs
         if "x_axis" in kwargs:
@@ -371,181 +372,6 @@ class Conductivity():
 
         else:
             return fig, ax
-
-    def Plot_old(self, key, *args, **kwargs):
-        """
-        Plots data corresponding to key.
-
-        kwargs are all passed to ax.plot from matplotlib except the following:
-        ------------------------------------------------------------------------
-        show :  Bool
-            Determines if the figure is shown ore closed defaults to True
-        x_axis : str
-            The key for the x-axis defaults to "T_av"
-        parameter : str
-            The key corresponding to the compared parameter defaults to "H"
-        """
-
-        # Looks for show as kwarg
-        try:
-            show = kwargs["show"]
-            if type(show) is not bool:
-                if show is not None:
-                    raise TypeError("show must be of type bool or None")
-                else:
-                    kwargs.pop("show")
-            else:
-                kwargs.pop("show")
-        except KeyError:
-            show = True
-
-        # Looks for x_axis as kwarg
-        try:
-            x_axis = kwargs["x_axis"]
-            if x_axis not in self.measures:
-                raise ValueError("x_axis must be in self.measures")
-            else:
-                kwargs.pop("x_axis")
-        except KeyError:
-            x_axis = "T_av"
-
-        # Looks for axis_fontsize as kwarg
-        try:
-            axis_fs = kwargs["axis_fontsize"]
-            kwargs.pop("axis_fontsize")
-        except KeyError:
-            axis_fs = 16
-
-        # Looks for parameter as kwarg
-        try:
-            parameters = kwargs["parameters"]
-            if type(parameters) is not list:
-                if type(parameters) is str:
-                    parameters = [parameters]
-                else:
-                    raise TypeError("Parameter must be a string")
-            else:
-                pass
-            for parameter in parameters:
-                if parameter not in self.parameters:
-                    raise ValueError("parameter must be in self.parameters")
-                else:
-                    pass
-            kwargs.pop("parameters")
-
-        except KeyError:
-            parameters = []
-
-        # Sets the label according to parameters
-        labels = []
-        for parameter in parameters:
-            try:
-                label = self.__dict_labels[parameter]
-            except KeyError:
-                label = "%s"
-            labels.append(label)
-        label = ", ".join(labels)
-        label_size = len(label)
-        if label_size < 2:
-            label_font = 14
-        elif label_size == 2:
-            label_font = 12
-        elif label_size > 2:
-            label_font = 10
-
-        # Checks that key is a valid measurement
-        if key in self.measures is False:
-            raise ValueError("%s is not in self.measures") % (key)
-        else:
-            pass
-
-        # Tries to find sample name
-        if "sample" in self.parameters:
-            sample = self["sample"]
-        else:
-            pass
-
-        # Looks for fig and ax
-        try:
-            fig = kwargs["fig"]
-            ax = kwargs["ax"]
-            kwargs.pop("fig")
-            kwargs.pop("ax")
-            return_fig = False
-        except KeyError:
-            fig, ax = plt.subplots(figsize=(8, 4.5))
-            return_fig = True
-
-        zero_line = 0
-        y_axis = None
-
-        # Draws the curves
-        if key == "Tp_Tm":
-            p = [self[parameter] for parameter in parameters]
-            ax.plot(self[x_axis], self["Tp"], label=r"T$^+$ "+label %
-                    tuple(p), *args, **kwargs)
-            ax.plot(self[x_axis], self["Tm"], label=r"T$^-$ "+label %
-                    tuple(p), *args, **kwargs)
-            ax.legend(fontsize=label_font)
-        else:
-            p = [self[parameter] for parameter in parameters]
-            x_data = self[x_axis]
-            if key in ["kxy", "kxy/T"]:
-                y_data = 10*self[key]
-            else:
-                y_data = self[key]
-            ax.plot(self[x_axis], self[key], label=label %
-                    tuple(p), *args, **kwargs)
-            if self[key].min()*self[key].max() < 0 and zero_line == 0:
-                ax.plot(self[x_axis], 0*self[key], "--k", lw=2)
-                zero_line += 1
-
-            elif self[key].min()*self[key].max() > 1 and zero_line == 0:
-                if self[key].max() < 0:
-                    y_axis = "Negative"
-                else:
-                    y_axis = "Positive"
-
-        # Makes it pretty
-        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
-        ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
-        ax.tick_params(axis="both", which="both", direction="in",
-                       top=True, right=True)
-
-        if label_size != 0:
-            ax.legend(fontsize=label_font)
-        else:
-            pass
-
-        # If sample is the same for all measurements print it on the figure
-        if len(fig.axes) == 1:
-            fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
-            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="bottom", ha="left")
-        else:
-            pass
-
-        # Set axis to start at 0
-        if x_axis in ["T_av", "T0"]:
-            ax.set_xlim(0)
-        else:
-            pass
-        if y_axis is not None:
-            if y_axis == "Positive":
-                ax.set_ylim(0, ax.get_ylim()[1])
-            else:
-                ax.set_ylim(ax.get_ylim()[0], 0)
-        else:
-            pass
-        if show is False:
-            plt.close()
-        elif show is True:
-            plt.show()
-
-        if return_fig is True:
-            return fig, ax
-        else:
-            return
 
     def Plot_all(self, *args, **kwargs):
         """
@@ -617,7 +443,7 @@ class Conductivity():
 
         n = len(measures)
 
-        fig, ax = self.__create_grid(n)
+        fig, ax = V.create_grid(n)
 
         try:
             kwargs.pop("show")
