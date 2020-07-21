@@ -341,15 +341,16 @@ def find_sample(filename, header=None):
 
     if sample is None:
 
+        date = find_date(filename)
+        H = find_H(filename)
+        mount = find_mount(filename)
+
         if date == "" or H == "" or mount == "":
             sample = ""
         else:
             sample = os.path.split(filename)[1]
             sample = os.path.splitext(sample)[0]
 
-            date = find_date(filename)
-            H = find_H(filename)
-            mount = find_mount(filename)
 
             sample = sample.replace(date, "")
             sample = sample.replace(H+"T", "")
