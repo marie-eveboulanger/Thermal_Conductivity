@@ -431,13 +431,17 @@ class Data_Set():
             parameters = dict()
             parameters_list = kwargs["parameters"]
             kwargs.pop("parameters")
+            parameters = []
             for p in parameters_list:
                 if p in self.parameters:
-                    parameters[p] = self[p]
+                    for m in self.measurements:
+                        params = dict()
+                        params[p] = m[p]
+                        parameters.append(params)
                 else:
                     raise Exception("parameters must be in self.parameters")
         else:
-            parameters = dict()
+            parameters = [dict() for i in self.measurements]
 
         kwargs["parameters"] = parameters
 
@@ -454,6 +458,7 @@ class Data_Set():
 
                 xdata, xkey = self.measurements[i][x_axis], x_axis
                 ydata, ykey = self.measurements[i][key], key
+                kwargs["parameters"] = parameters[i]
 
                 if i == 0:
                     fig, ax = V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
@@ -476,6 +481,7 @@ class Data_Set():
                 xdata, xkey = self.measurements[i][x_axis], x_axis
                 ydata1, ykey1 = self.measurements[i]["Tp"], "Tp"
                 ydata2, ykey2 = self.measurements[i]["Tm"], "Tm"
+                kwargs["parameters"] = parameters[i]
 
                 if i == 0:
                     kwargs["parameters"]["which"] = r"T$^{+}$"
