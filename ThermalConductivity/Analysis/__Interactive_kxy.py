@@ -465,7 +465,7 @@ class Conductivity():
                       fig=fig, ax=ax[i], **kwargs)
 
         if hasattr(self, "__sample") is True:
-            plt.suptitle(self["sample"], y=0.9, fontsize=22)
+            plt.suptitle(self["sample"], y=0.95, fontsize=22)
         else:
             pass
 
