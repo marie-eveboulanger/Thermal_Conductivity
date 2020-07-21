@@ -20,6 +20,7 @@ import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Utilities import Database as D
+from ThermalConductivity import Visualization as V
 
 ################################################################################
 #                 ____ _        _    ____ ____  _____ ____                     #
