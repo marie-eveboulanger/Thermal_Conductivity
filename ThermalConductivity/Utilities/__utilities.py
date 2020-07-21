@@ -166,6 +166,8 @@ def find_H(filename, header=None):
         H = re.search(r"\d{1,2}\.\d{1}T", filename)
         if H is not None:
             H = H.group()[0:-1]
+        else:
+            H = ""
     else:
         pass
 
@@ -224,6 +226,8 @@ def find_date(filename, header=None):
         date = re.search(r"\d{4}-\d{2}-\d{2}", filename)
         if date is not None:
             date = date.group()
+        else:
+            date = ""
 
     return date
 
@@ -280,6 +284,8 @@ def find_mount(filename, header=None):
         mount = re.search(r"-\w{3}-", filename)
         if mount is not None:
             mount = mount.group()[1:-1]
+        else:
+            mount = ""
     else:
         pass
 
@@ -334,18 +340,22 @@ def find_sample(filename, header=None):
         sample = None
 
     if sample is None:
-        sample = os.path.split(filename)[1]
-        sample = os.path.splitext(sample)[0]
 
-        date = find_date(filename)
-        H = find_H(filename)
-        mount = find_mount(filename)
+        if date == "" or H == "" or mount == "":
+            sample = ""
+        else:
+            sample = os.path.split(filename)[1]
+            sample = os.path.splitext(sample)[0]
 
-        sample = sample.replace(date, "")
-        sample = sample.replace(H+"T", "")
-        sample = sample.replace(mount, "")
-        sample = sample.replace("Data", "")
-        sample = re.search(r"[\d\w]{4,}", sample).group()
+            date = find_date(filename)
+            H = find_H(filename)
+            mount = find_mount(filename)
+
+            sample = sample.replace(date, "")
+            sample = sample.replace(H+"T", "")
+            sample = sample.replace(mount, "")
+            sample = sample.replace("Data", "")
+            sample = re.search(r"[\d\w]{4,}", sample).group()
     else:
         pass
 
