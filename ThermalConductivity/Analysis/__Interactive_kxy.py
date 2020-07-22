@@ -197,15 +197,15 @@ class Conductivity():
             I = self["I"]
 
             # Computing everything
-            result = F.vti_calibration_loop(dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0)
-            kxx = F.compute_kxx(I, result[1], self["w"], self["t"], self["L"])
+            result = F.vti_thermocouple_calibration_loop(
+                dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0)
+            kxx = F.compute_kxx(
+                I, result["dTx"], self["w"], self["t"], self["L"])
 
             # Storing in self
             self["kxx"] = kxx
-            self["T_av"] = result[0]
-            self["dTx"] = result[1]
-            self["Tp"] = result[2]
-            self["Tm"] = result[3]
+            for key, value in result.items():
+                self[key] = value
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
 
             if self["H"] != "0.0" or self["force_kxy"] is True:

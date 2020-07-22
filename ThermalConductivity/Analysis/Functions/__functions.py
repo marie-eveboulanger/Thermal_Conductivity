@@ -142,4 +142,10 @@ def vti_thermocouple_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0
         T_plus = T_minus+dTx
         T_av = T_minus+dTx/2
 
-    return T_av, dTx, T_plus, T_minus
+    result = dict()
+    result["T_av"] = T_av
+    result["dTx"] = dTx
+    result["Tp"] = T_plus
+    result["Tm"] = T_minus
+
+    return result
