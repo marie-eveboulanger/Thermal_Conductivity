@@ -84,6 +84,13 @@ class Conductivity():
         else:
             raise ValueError("Sign must be 1 or -1")
 
+        if "gain" in kwargs:
+            gain = kwargs["gain"]
+            self["gain"] = gain
+        else:
+            gain = 1000
+            self["gain"] = gain
+
         if filename is not None:
             filename = os.path.abspath(filename)
             self["filename"] = filename
@@ -108,7 +115,7 @@ class Conductivity():
                 self[key] = values
                 self.raw_data.append(key)
 
-            self.__Analyze()
+            self.__Analyze(gain)
             self.__add_measure()
 
         # Remaining kwargs are set as parameters
@@ -142,7 +149,7 @@ class Conductivity():
 
         return sym_data
 
-    def __Analyze(self):
+    def __Analyze(self, gain):
         # Probe Tallahasse
         if self["probe"] == "Tallahasse":
             # Cut the uncalibrated points
@@ -176,7 +183,8 @@ class Conductivity():
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 # Compute dTy
                 Tr = T0+T_av/2  # Reference tempereature for the thermocouple
-                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy = F.compute_thermocouple(
+                    self["dTy_0"], self["dTy_Q"], Tr, gain)
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
@@ -198,7 +206,7 @@ class Conductivity():
 
             # Computing everything
             result = F.vti_thermocouple_calibration_loop(
-                dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0)
+                dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0, gain)
             kxx = F.compute_kxx(
                 I, result["dTx"], self["w"], self["t"], self["L"])
 
@@ -211,7 +219,8 @@ class Conductivity():
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 # Compute dTy
                 Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
-                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy = F.compute_thermocouple(
+                    self["dTy_0"], self["dTy_Q"], Tr, gain)
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
