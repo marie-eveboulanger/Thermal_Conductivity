@@ -49,15 +49,15 @@ class Conductivity():
     __dict_parameters = D.parameters_dict
 
     # Creation of an internal dictionnary used to match measurements to their
-    # respective axis titles     
+    # respective axis titles
     __dict_axis = V.axis_labels
     __dict_labels = V.legend_labels
-
 
     def __init__(self, filename=None, w=1e-6, t=1e-6, L=1e-6, sign=1, **kwargs):
 
         self.parameters = []
         self.measures = []
+        self.raw_data = []
         # Check for some specific kwargs
         try:
             self["force_kxy"] = kwargs["force_kxy"]
@@ -84,12 +84,19 @@ class Conductivity():
         else:
             raise ValueError("Sign must be 1 or -1")
 
+        if "gain" in kwargs:
+            gain = kwargs["gain"]
+            self["gain"] = gain
+        else:
+            gain = 1000
+            self["gain"] = gain
+
         if filename is not None:
             filename = os.path.abspath(filename)
             self["filename"] = filename
 
             # Find info
-            self.__add_parameters(w,t,L)
+            self.__add_parameters(w, t, L)
 
             # If symetrize is True
             if self["H"] != "0.0" and self["symmetrize"] is True:
@@ -106,8 +113,9 @@ class Conductivity():
 
             for key, values in raw_data.items():
                 self[key] = values
+                self.raw_data.append(key)
 
-            self.__Analyze()
+            self.__Analyze(gain)
             self.__add_measure()
 
         # Remaining kwargs are set as parameters
@@ -141,7 +149,7 @@ class Conductivity():
 
         return sym_data
 
-    def __Analyze(self):
+    def __Analyze(self, gain):
         # Probe Tallahasse
         if self["probe"] == "Tallahasse":
             # Cut the uncalibrated points
@@ -175,7 +183,8 @@ class Conductivity():
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 # Compute dTy
                 Tr = T0+T_av/2  # Reference tempereature for the thermocouple
-                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy = F.compute_thermocouple(
+                    self["dTy_0"], self["dTy_Q"], Tr, gain)
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
@@ -196,21 +205,22 @@ class Conductivity():
             I = self["I"]
 
             # Computing everything
-            result = F.vti_calibration_loop(dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0)
-            kxx = F.compute_kxx(I, result[1], self["w"], self["t"], self["L"])
+            result = F.vti_thermocouple_calibration_loop(
+                dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0, gain)
+            kxx = F.compute_kxx(
+                I, result["dTx"], self["w"], self["t"], self["L"])
 
             # Storing in self
             self["kxx"] = kxx
-            self["T_av"] = result[0]
-            self["dTx"] = result[1]
-            self["Tp"] = result[2]
-            self["Tm"] = result[3]
+            for key, value in result.items():
+                self[key] = value
             self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
 
             if self["H"] != "0.0" or self["force_kxy"] is True:
                 # Compute dTy
                 Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
-                dTy = F.compute_thermocouple(self["dTy_0"], self["dTy_Q"], Tr)
+                dTy = F.compute_thermocouple(
+                    self["dTy_0"], self["dTy_Q"], Tr, gain)
                 dTy *= self["sign"]  # Apply the sign
 
                 # Compute kxy
@@ -224,7 +234,7 @@ class Conductivity():
 
         return
 
-    def __add_parameters(self,width,thickness,length):
+    def __add_parameters(self, width, thickness, length):
 
         filename = self["filename"]
         header = U.read_header(filename)
@@ -243,13 +253,12 @@ class Conductivity():
         self["probe"] = U.find_probe(filename, header)
 
         # Add to parameters
-        parameters += ["H","date","mount","sample","probe"]
-        parameters += ["w","t","L"]
+        parameters += ["H", "date", "mount", "sample", "probe"]
+        parameters += ["w", "t", "L"]
 
         self.parameters += parameters
 
         return
-
 
     def __add_measure(self):
         if "T_av" and "kxx" in self.measures:
@@ -288,209 +297,103 @@ class Conductivity():
 
         return
 
-    def __create_grid(self, measures):
-        n = len(measures)
-
-        if n % 2 == 0:
-            N = n//2
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = ax.flatten().tolist()
-        else:
-            N = n//2+1
-            s = (N, 4)
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = []
-            loc = (0, 0)
-            for i in range(n):
-
-                if i != 0:
-                    if i != n-1:
-                        if int(loc[1]) == 0:
-                            loc = (loc[0], 2)
-                        elif int(loc[1]) == 2:
-                            loc = (loc[0]+1, 0)
-                    else:
-                        loc = (N-1, 1)
-                else:
-                    pass
-                axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
-
-        return fig, axes
-
     def Plot(self, key, *args, **kwargs):
         """
-        Plots data corresponding to key.
+        Used as a layer between the object and Visualization.Plot
 
-        kwargs are all passed to ax.plot from matplotlib except the following:
+        Parameters:
         ------------------------------------------------------------------------
-        show :  Bool
-            Determines if the figure is shown ore closed defaults to True
-        x_axis : str
-            The key for the x-axis defaults to "T_av"
-        parameter : str
-            The key corresponding to the compared parameter defaults to "H"
+        key:        string
+                    The measurement to plot
+
+        Kwargs:
+        ------------------------------------------------------------------------
+        show:       Bool
+                    Determines if the figure is shown ore closed defaults to True
+
+        parameters: list
+                    list of parameters to be used for legends
+
+        axis_fs:    Int
+                    The axis labels fontsize
+
+        fig:        matplotlib.figure
+                    Used to draw on an existing figure, requires ax
+
+        ax:         matplotlib.ax
+                    Used to draw on an existing figure, requires fig
+
+        x_axis:     string
+                    The measurement to use as x-axis defaults to T_av
         """
 
-        # Looks for show as kwarg
-        try:
-            show = kwargs["show"]
-            if type(show) is not bool:
-                if show is not None:
-                    raise TypeError("show must be of type bool or None")
-                else:
-                    kwargs.pop("show")
-            else:
-                kwargs.pop("show")
-        except KeyError:
-            show = True
-
-        # Looks for x_axis as kwarg
-        try:
-            x_axis = kwargs["x_axis"]
-            if x_axis not in self.measures:
-                raise ValueError("x_axis must be in self.measures")
-            else:
-                kwargs.pop("x_axis")
-        except KeyError:
-            x_axis = "T_av"
-
-        # Looks for axis_fontsize as kwarg
-        try:
-            axis_fs = kwargs["axis_fontsize"]
-            kwargs.pop("axis_fontsize")
-        except KeyError:
-            axis_fs = 16
-
-        # Looks for parameter as kwarg
-        try:
-            parameters = kwargs["parameters"]
-            if type(parameters) is not list:
-                if type(parameters) is str:
-                    parameters = [parameters]
-                else:
-                    raise TypeError("Parameter must be a string")
-            else:
-                pass
-            for parameter in parameters:
-                if parameter not in self.parameters:
-                    raise ValueError("parameter must be in self.parameters")
-                else:
-                    pass
-            kwargs.pop("parameters")
-
-        except KeyError:
-            parameters = []
-
-        # Sets the label according to parameters
-        labels = []
-        for parameter in parameters:
-            try:
-                label = self.__dict_labels[parameter]
-            except KeyError:
-                label = "%s"
-            labels.append(label)
-        label = ", ".join(labels)
-        label_size = len(label)
-        if label_size < 2:
-            label_font = 14
-        elif label_size == 2:
-            label_font = 12
-        elif label_size > 2:
-            label_font = 10
-
-        # Checks that key is a valid measurement
-        if key in self.measures is False:
-            raise ValueError("%s is not in self.measures") % (key)
-        else:
-            pass
-
-        # Tries to find sample name
-        if "sample" in self.parameters:
-            sample = self["sample"]
-        else:
-            pass
-
-        # Looks for fig and ax
-        try:
-            fig = kwargs["fig"]
-            ax = kwargs["ax"]
-            kwargs.pop("fig")
-            kwargs.pop("ax")
+        # Deal with kwargs
+        if "fig" in kwargs:
             return_fig = False
-        except KeyError:
-            fig, ax = plt.subplots(figsize=(8, 4.5))
+        else:
             return_fig = True
 
-        zero_line = 0
-        y_axis = None
-
-        # Draws the curves
-        if key == "Tp_Tm":
-            p = [self[parameter] for parameter in parameters]
-            ax.plot(self[x_axis], self["Tp"], label=r"T$^+$ "+label %
-                    tuple(p), *args, **kwargs)
-            ax.plot(self[x_axis], self["Tm"], label=r"T$^-$ "+label %
-                    tuple(p), *args, **kwargs)
-            ax.legend(fontsize=label_font)
-        else:
-            p = [self[parameter] for parameter in parameters]
-            x_data = self[x_axis]
-            if key in ["kxy", "kxy/T"]:
-                y_data = 10*self[key]
+        if "x_axis" in kwargs:
+            x_axis = kwargs["x_axis"]
+            kwargs.pop("x_axis")
+            if x_axis in self.measures:
+                pass
             else:
-                y_data = self[key]
-            ax.plot(self[x_axis], self[key], label=label %
-                    tuple(p), *args, **kwargs)
-            if self[key].min()*self[key].max() < 0 and zero_line == 0:
-                ax.plot(self[x_axis], 0*self[key], "--k", lw=2)
-                zero_line += 1
+                raise Exception("x_axis must be in self.measures")
+        else:
+            x_axis = "T_av"
 
-            elif self[key].min()*self[key].max() > 1 and zero_line == 0:
-                if self[key].max() < 0:
-                    y_axis = "Negative"
+        if "figtext" not in kwargs:
+            kwargs["figtext"] = self["sample"]
+        else:
+            pass
+
+        if "parameters" in kwargs:
+            parameters = dict()
+            parameters_list = kwargs["parameters"]
+            kwargs.pop("parameters")
+            for p in parameters_list:
+                if p in self.parameters:
+                    parameters[p] = self[p]
                 else:
-                    y_axis = "Positive"
-
-        # Makes it pretty
-        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
-        ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
-        ax.tick_params(axis="both", which="both", direction="in",
-                       top=True, right=True)
-
-        if label_size != 0:
-            ax.legend(fontsize=label_font)
+                    raise Exception("parameters must be in self.parameters")
         else:
-            pass
+            parameters = dict()
 
-        # If sample is the same for all measurements print it on the figure
-        if len(fig.axes) == 1:
-            fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
-            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="bottom", ha="left")
-        else:
-            pass
+        kwargs["parameters"] = parameters
 
-        # Set axis to start at 0
-        if x_axis in ["T_av", "T0"]:
-            ax.set_xlim(0)
+        if key != "Tp_Tm":
+
+            xdata, xkey = self[x_axis], x_axis
+            ydata, ykey = self[key], key
+
+            fig, ax = V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+
         else:
-            pass
-        if y_axis is not None:
-            if y_axis == "Positive":
-                ax.set_ylim(0, ax.get_ylim()[1])
+
+            xdata, xkey = self[x_axis], x_axis
+            ydata1, ykey1 = self["Tp"], "Tp"
+            ydata2, ykey2 = self["Tm"], "Tm"
+
+            if "show" in kwargs:
+                show = kwargs["show"]
+                kwargs["show"] = None
             else:
-                ax.set_ylim(ax.get_ylim()[0], 0)
-        else:
-            pass
-        if show is False:
-            plt.close()
-        elif show is True:
-            plt.show()
+                kwargs["show"] = None
+                show = True
+            kwargs["parameters"]["which"] = r"T$^{+}$"
+            fig, ax = V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
 
-        if return_fig is True:
-            return fig, ax
-        else:
+            kwargs["show"] = show
+            kwargs["parameters"]["which"] = r"T$^{-}$"
+            kwargs["fig"], kwargs["ax"] = fig, ax
+            fig, ax = V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
+
+        if return_fig is False:
             return
+
+        else:
+            return fig, ax
 
     def Plot_all(self, *args, **kwargs):
         """
@@ -503,45 +406,23 @@ class Conductivity():
         figures = []
 
         try:
-            save = kwargs["save"]
-            kwargs.pop("save")
-        except KeyError:
-            save = False
-
-        try:
             filename = kwargs["filename"]
             kwargs.pop("filename")
         except KeyError:
-            if save is True:
-                filename = self["filename"].replace(".dat", ".pdf")
-                filename = filename.replace("data", "figures")
-                directory = os.path.split(filename)[0]
-                print(directory)
+            filename = None
 
-                # Creates a figure directory with the same structure as the data
-                # directory if the answer is yes, otherwise saves the pdf file
-                # with the data
-                if os.path.isdir(directory) is False:
-                    answer = input(
-                        "Do you want to create directory (Y/n): %s" % directory)
-                    if answer in ["Y", "y", "", "yes"]:
-                        os.makedirs(directory)
-                    else:
-                        filename = self["filename"].replace(".dat", ".pdf")
-                        print("Figures will be saved with data at %s" %
-                              filename)
-            else:
-                filename = None
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
 
         for key in measures:
             figures.append(self.Plot(key, *args, **kwargs)[0])
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            for i in figures:
-                pp.savefig(i)
-            pp.close()
+            U.save_to_pdf(filename, figures, overwrite=overwrite)
         else:
             pass
 
@@ -560,7 +441,9 @@ class Conductivity():
                     "dTx/T", "dTy", "dTy/dTx", "Resistance", "Tp_Tm"]
         measures = [i for i in ref_meas if i in measures]
 
-        fig, ax = self.__create_grid(measures)
+        n = len(measures)
+
+        fig, ax = V.create_grid(n)
 
         try:
             kwargs.pop("show")
@@ -573,28 +456,32 @@ class Conductivity():
         except KeyError:
             filename = None
 
-        for i in range(len(measures)):
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
+
+        for i in range(n):
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
 
         if hasattr(self, "__sample") is True:
-            plt.suptitle(self["sample"], fontsize=22)
+            plt.suptitle(self["sample"], y=0.95, fontsize=22)
         else:
             pass
 
-        fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
+        fig.tight_layout(rect=[0.01, 0.01, 1, 0.96])
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            pp.savefig(fig)
-            pp.close()
+            U.save_to_pdf(filename, fig, overwrite=overwrite)
         else:
             pass
 
         return fig, ax
 
-    def Write_out(self, filename=None):
+    def Write_out(self, filename=None, overwrite="ask"):
         """
         Writes the treated data to a file
         """
@@ -606,7 +493,7 @@ class Conductivity():
         else:
             filename = os.path.abspath(filename)
 
-        parameters1 = ["sample", "date", "mount", "H"]
+        parameters1 = ["sample", "date", "mount", "probe", "H"]
         parameters2 = ["w", "t", "L"]
         measures = ["T_av", "T0", "Tp", "Tm", "dTx", "kxx", "dTy", "kxy"]
         columns = ["T_av(K)", "T0(K)", "T+(K)", "T-(K)",
@@ -626,8 +513,7 @@ class Conductivity():
         header = comments1+"\n"+comments2+"\n"+columns
         data = np.array([self[i] for i in measures]).T
 
-        np.savetxt(filename, data, delimiter="\t",
-                   header=header, fmt="%.6e")
+        U.write_to_file(filename, data, header, overwrite=overwrite)
 
     def Current(self, _min, _max, deg=5, T_max=100, N=100, *args, **kwargs):
         """
@@ -648,10 +534,10 @@ class Conductivity():
                 Number of points in the plot
         """
 
-        datafile = os.path.abspath("/".join(self["filename"].split("/")[0:-1]))
+        directory = os.path.split(self["filename"])[0]
         rnge = "%1.0f%s_to_%1.0f%s.dat" % (_min, "%", _max, "%")
         name = "_".join([self["sample"].replace(" ", "_"), "dTovT", rnge])
-        datafile = os.path.join(datafile, name)
+        datafile = os.path.join(directory, name)
         n = self["T_av"].shape[0]
         dT_T = np.linspace(_min/100, _max/100, n)
         alpha = self["w"]*self["t"]/self["L"]
@@ -701,9 +587,7 @@ class Conductivity():
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            pp.savefig(fig)
-            pp.close()
+            U.save_to_pdf(filename, fig)
         else:
             pass
 
@@ -711,24 +595,13 @@ class Conductivity():
             write = kwargs["write"]
             kwargs.pop("write")
         except KeyError:
-            if os.path.isfile(datafile) is False:
-                write = True
-            else:
-                answer = input(
-                    "File %s already exists, overwrite? (y/N)" % datafile)
-                if answer in ["Y", "y", "O", "o", "yes", "Yes", "oui", "Oui"]:
-                    write = True
-                    print("File overwritten")
-                else:
-                    write = False
-                    print("File will not be saved")
+            write = True
 
         if write is True:
             degrees = np.array([i for i in range(coeff_I.shape[0])])
             data = np.array([degrees, coeff_I[::-1]]).T
             header = "Current function coefficients\norder\tcoeff"
-            np.savetxt(datafile, data, delimiter="\t",
-                       header=header, fmt=["%i", "%.18e"])
+            U.write_to_file(datafile, data, header, fmt=["%i", "%,18e"])
         else:
             pass
 

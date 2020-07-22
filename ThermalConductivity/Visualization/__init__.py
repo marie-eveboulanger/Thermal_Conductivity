@@ -1,3 +1,3 @@
 from ThermalConductivity.Visualization.__plots import axis_labels
 from ThermalConductivity.Visualization.__plots import legend_labels
-from ThermalConductivity.Visualization.__plots import Plot
+from ThermalConductivity.Visualization.__plots import Plot, create_grid

@@ -6,17 +6,17 @@ import numpy.polynomial as npp
 from ThermalConductivity.Thermometry import seebeck_thermometry
 
 
-def compute_kxx(I, dTx, width, thickness, length, Resistance=5000):
+def compute_kxx(current, dTx, width, thickness, length, Resistance=5000):
     """
-    Computes the longtitudinal thermal grandient aka kxx
+    Computes the longtitudinal thermal conductivity aka kxx in W / Km
 
     Parameters:
         ----------------------------------------------------------------------------
-        I:      1d array
+        current: 1d array
         The values of the current that flows through the heater.
-        dTx:    1d array
+        dTx: 1d array
         The values of the longitudinal temperature gradient in the sample.
-        width:  float
+        width: float
         The sample's width in meters
         thickness:  1d array
         The sample's thickness in meters
@@ -26,7 +26,7 @@ def compute_kxx(I, dTx, width, thickness, length, Resistance=5000):
         The heater's resistance in ohm
         """
 
-    Q = Resistance*I*I
+    Q = Resistance * current * current
     alpha = (width*thickness)/length  # The geometric factor
     kxx = Q/(dTx*alpha)
 
@@ -35,12 +35,12 @@ def compute_kxx(I, dTx, width, thickness, length, Resistance=5000):
 
 def compute_kxy(kxx, dTx, dTy, width, length, Resistance=5000):
     """
-    Computes the transverse thermal grandient aka kxy
+    Computes the thermal Hall conductivity aka kxy in W / Km
 
     Parameters:
     ----------------------------------------------------------------------------
     kxx:      1d array
-    The values of the longitudinal thermal gradient.
+    The values of the longitudinal thermal conductivity.
     dTx:    1d array
     The values of the longitudinal temperature gradient in the sample.
     dTy:    1d array
@@ -51,9 +51,9 @@ def compute_kxy(kxx, dTx, dTy, width, length, Resistance=5000):
     The sample's length in meters
     """
 
-    geo_factor = length/width
+    length_ratio = length/width
     delta_ratio = dTy/dTx
-    kxy = kxx*delta_ratio*geo_factor
+    kxy = kxx*delta_ratio*length_ratio
 
     return kxy
 
@@ -106,7 +106,7 @@ def compute_thermocouple(dT_heat_off, dT_heat_on, T_reference, gain=1000):
     return delta_T
 
 
-def vti_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0):
+def vti_thermocouple_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0, gain=1000):
     """
     Computes a calibration loop for the VTI's thermocouple
 
@@ -136,10 +136,17 @@ def vti_calibration_loop(dT_abs_off, dT_abs_on, dTx_off, dTx_on, T0):
         previous_T_av = T_av
         T_ref_1 = T0+dT_abs/2
         T_ref_2 = T_minus+dTx/2
-        dT_abs = abs(compute_thermocouple(dT_abs_off, dT_abs_on, T_ref_1))
-        dTx = abs(compute_thermocouple(dTx_off, dTx_on, T_ref_2))
+        dT_abs = abs(compute_thermocouple(
+            dT_abs_off, dT_abs_on, T_ref_1, gain))
+        dTx = abs(compute_thermocouple(dTx_off, dTx_on, T_ref_2, gain))
         T_minus = T0+dT_abs
         T_plus = T_minus+dTx
         T_av = T_minus+dTx/2
 
-    return T_av, dTx, T_plus, T_minus
+    result = dict()
+    result["T_av"] = T_av
+    result["dTx"] = dTx
+    result["Tp"] = T_plus
+    result["Tm"] = T_minus
+
+    return result

@@ -20,6 +20,8 @@ import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from ThermalConductivity.Utilities import Database as D
+from ThermalConductivity import Visualization as V
+from ThermalConductivity import Utilities as U
 
 ################################################################################
 #                 ____ _        _    ____ ____  _____ ____                     #
@@ -65,71 +67,36 @@ class Measurement():
 
         self.measures = []
         self.parameters = []
-        # Sets the values using the info provided
-        for key, value in kwargs.items():
-            setattr(self, "__"+key, value)
-            self.parameters.append(key)
-            try:
-                self.__dict_parameters[key]
-            except KeyError:
-                self.__dict_parameters[key] = [key]
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            raw_data = np.genfromtxt(filename, delimiter="\t", skip_header=1).T
-            lines = []
-            with open(filename) as f:
-                for i, line in enumerate(f):
-                    l = line.split(" ")
-                    if l[0] != "#":
-                        numbers = ["0", "1", "2", "3",
-                                   "4", "5", "6", "7", "8", "9"]
-                        if l[0][0] in numbers:
-                            break
-                        else:
-                            lines.append(l[0].strip())
-                    else:
-                        lines.append(line.strip()[2:])
+            data = U.read_file_treated(filename)
+            header = U.read_header(filename)
+            for key, value in data.items():
+                self[key] = value
+                self.measures.append(key)
 
-            # Should contain all the comment lines without trailing \n and
-            #starting #
-            self.lines = lines
+            self["H"] = U.find_H(filename, header)
+            self["date"] = U.find_date(filename, header)
+            self["mount"] = U.find_mount(filename, header)
+            self["sample"] = U.find_sample(filename, header)
+            self["probe"] = U.find_probe(filename, header)
 
-            # Separate misc comments from the actual header
-            for line in self.lines:
-                l = line.split("\t")
-                if len(l) < 6:
-                    for key, values in self.__dict_parameters.items():
-                        if l[0] in values:
-                            if hasattr(self, "__"+key) is False:
-                                setattr(self, "__"+key, l[-1])
-                                self.parameters.append(key)
-                            else:
-                                pass
-                        else:
-                            pass
-                else:
-                    for key, values in self.__dict_measures.items():
+            self.parameters += ["H", "date", "mount", "sample", "probe"]
 
-                        for i in range(len(l)):
-                            if l[i].strip() in values:
-                                setattr(self, "__"+key, raw_data[i])
-                                self.measures.append(key)
-                            else:
-                                pass
-                    if len(self.measures) == 0:
-                        raise Exception("No known measurements found")
-                    else:
-                        pass
+        for key, value in kwargs.items():
+            self[key] = value
+            if key not in self.parameters:
+                self.parameters.append(key)
 
-            if hasattr(self, "__sample") is False:
-                setattr(self, "__sample", "unknown")
-            else:
-                pass
-            if hasattr(self, "__H") is False:
-                setattr(self, "__H", "unknown")
-            else:
-                pass
+        if hasattr(self, "__sample") is False:
+            setattr(self, "__sample", "unknown")
+        else:
+            pass
+        if hasattr(self, "__H") is False:
+            setattr(self, "__H", "unknown")
+        else:
+            pass
 
         self.__add_measure()
 
@@ -233,29 +200,8 @@ class Data_Set():
 
     # Creation of an internal dictionnary used to match measurements to their
     # respective axis titles to make the figures prettier.
-    __list_measures = list()
-    __list_parameters = list()
-    __dict_axis = dict()
-    __dict_axis["T_av"] = r"T ( K )"
-    __dict_axis["T0"] = r"$T_0$ ( K )"
-    __dict_axis["Tp"] = __dict_axis["T_av"]
-    __dict_axis["Tm"] = __dict_axis["T_av"]
-    __dict_axis["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
-    __dict_axis["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
-    __dict_axis["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
-    __dict_axis["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
-    __dict_axis["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
-    __dict_axis["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
-    __dict_axis["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
-    __dict_axis["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
-    __dict_axis["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
-    __dict_axis["Tp_Tm"] = __dict_axis["T_av"]
-
-    # Same principle then before but for curve labels
-    __dict_labels = dict()
-    __dict_labels["H"] = r"H = %sT"
-    __dict_labels["sample"] = r"Sample: %s"
-    __dict_labels["date"] = r"%s"
+    __dict_axis = V.axis_labels
+    __dict_labels = V.legend_labels
 
     def __init__(self, measurements=None):
         """
@@ -420,122 +366,37 @@ class Data_Set():
 
         return
 
-    def __create_grid(self, measures):
-        n = len(measures)
-
-        if n % 2 == 0:
-            N = n//2
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = ax.flatten().tolist()
-        else:
-            N = n//2+1
-            s = (N, 4)
-            fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
-            axes = []
-            loc = (0, 0)
-            for i in range(n):
-
-                if i != 0:
-                    if i != n-1:
-                        if int(loc[1]) == 0:
-                            loc = (loc[0], 2)
-                        elif int(loc[1]) == 2:
-                            loc = (loc[0]+1, 0)
-                    else:
-                        loc = (N-1, 1)
-                else:
-                    pass
-                axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
-
-        return fig, axes
-
     def Plot(self, key, *args, **kwargs):
         """
-        Plots data corresponding to key for all Measurement in Data_Set
+        Used as a layer between the object and Visualization.Plot
 
-        kwargs are all passed to ax.plot from matplotlib except the following:
+        Parameters:
         ------------------------------------------------------------------------
-        show :  Bool
-            Determines if the figure is shown ore closed defaults to True
-        x_axis : str
-            The key for the x-axis defaults to "T_av"
-        parameter : str
-            The key corresponding to the compared parameter defaults to "H"
+        key:        string
+                    The measurement to plot
+
+        Kwargs:
+        ------------------------------------------------------------------------
+        show:       Bool
+                    Determines if the figure is shown ore closed defaults to True
+
+        parameters: list
+                    list of parameters to be used for legends
+
+        axis_fs:    Int
+                    The axis labels fontsize
+
+        fig:        matplotlib.figure
+                    Used to draw on an existing figure, requires ax
+
+        ax:         matplotlib.ax
+                    Used to draw on an existing figure, requires fig
+
+        x_axis:     string
+                    The measurement to use as x-axis defaults to T_av
         """
 
-        # Looks for show as kwarg
-        try:
-            show = kwargs["show"]
-            if type(show) is not bool:
-                if show is not None:
-                    raise TypeError("show must be of type bool or None")
-                else:
-                    kwargs.pop("show")
-            else:
-                kwargs.pop("show")
-        except KeyError:
-            show = True
-
-        # Looks for x_axis as kwarg
-        try:
-            x_axis = kwargs["x_axis"]
-            if x_axis not in self.measures:
-                raise ValueError("x_axis must be in self.measures")
-            else:
-                kwargs.pop("x_axis")
-        except KeyError:
-            x_axis = "T_av"
-
-        # Looks for axis_fontsize as kwarg
-        try:
-            axis_fs = kwargs["axis_fontsize"]
-            kwargs.pop("axis_fontsize")
-        except KeyError:
-            axis_fs = 16
-
-        # Looks for parameter as kwarg
-        try:
-            parameters = kwargs["parameters"]
-            if type(parameters) is not list:
-                if type(parameters) is str:
-                    parameters = [parameters]
-                else:
-                    raise TypeError("Parameter must be a string")
-            else:
-                pass
-            for parameter in parameters:
-                if parameter not in self.parameters:
-                    raise ValueError("parameter must be in self.parameters")
-                else:
-                    pass
-            kwargs.pop("parameters")
-
-        except KeyError:
-            parameters = ["H"]
-
-        # Sets the label according to parameters
-        labels = []
-        for parameter in parameters:
-            try:
-                label = self.__dict_labels[parameter]
-            except KeyError:
-                label = "%s"
-            labels.append(label)
-        label = ", ".join(labels)
-        label_size = len(label)
-        if label_size == 1:
-            label_font = 14
-        elif label_size == 2:
-            label_font = 12
-        elif label_size > 2:
-            label_font = 10
-
-        # Checks that key is a valid measurement
-        if key in self.measures is False:
-            raise ValueError("%s is not in self.measures") % (key)
-        else:
-            pass
-
+        # Deal with kwargs
         # Tries to find sample name
         if "sample" in self.parameters:
             sample = self.measurements[0]["sample"]
@@ -546,88 +407,115 @@ class Data_Set():
                     sample = None
                     break
 
-        # Looks for fig and ax
-        try:
-            fig = kwargs["fig"]
-            ax = kwargs["ax"]
-            kwargs.pop("fig")
-            kwargs.pop("ax")
+        if "fig" in kwargs:
             return_fig = False
-        except KeyError:
-            fig, ax = plt.subplots(figsize=(8, 4.5))
+        else:
             return_fig = True
 
-        zero_line = 0
-        y_axis = None
-
-        # Draws the curves
-        if key == "Tp_Tm":
-            for m in self.measurements:
-                p = [m[parameter] for parameter in parameters]
-                ax.plot(m[x_axis], m["Tp"], label="T+ "+label %
-                        tuple(p), *args, **kwargs)
-                ax.plot(m[x_axis], m["Tm"], label="T- "+label %
-                        tuple(p), *args, **kwargs)
-        else:
-            for m in self.measurements:
-                p = [m[parameter] for parameter in parameters]
-                x_data = m[x_axis]
-                if key in ["kxy", "kxy/T"]:
-                    y_data = 10*m[key]
-                else:
-                    y_data = m[key]
-                ax.plot(m[x_axis], m[key], label=label %
-                        tuple(p), *args, **kwargs)
-                if m[key].min()*m[key].max() < 0 and zero_line == 0:
-                    ax.plot(m[x_axis], 0*m[key], "--k", lw=2)
-                    zero_line += 1
-
-                elif m[key].min()*m[key].max() > 1 and zero_line == 0:
-                    if m[key].max() < 0:
-                        y_axis = "Negative"
-                    else:
-                        y_axis = "Positive"
-
-        # Makes it pretty
-        ax.set_xlabel(self.__dict_axis[x_axis], fontsize=axis_fs)
-        ax.set_ylabel(self.__dict_axis[key], fontsize=axis_fs)
-        ax.legend(fontsize=label_font)
-        ax.tick_params(axis="both", which="both", direction="in",
-                       top=True, right=True)
-
-        # If sample is the same for all measurements print it on the figure
-        if len(fig.axes) == 1:
-            fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
-            plt.figtext(0.05, 0.005, sample, fontsize=axis_fs -
-                        2, va="bottom", ha="left")
-        else:
-            pass
-            # ax.set_title(self.__dict_axis[key].split("(")[0],fontsize=axis_fs)
-
-        # Set axis to start at 0
-        if x_axis in ["T_av", "T0"]:
-            ax.set_xlim(0)
-        else:
-            pass
-        if y_axis is not None:
-            if y_axis == "Positive":
-                ax.set_ylim(0, ax.get_ylim()[1])
+        if "x_axis" in kwargs:
+            x_axis = kwargs["x_axis"]
+            kwargs.pop("x_axis")
+            if x_axis in self.measures:
+                pass
             else:
-                ax.set_ylim(ax.get_ylim()[0], 0)
+                raise Exception("x_axis must be in self.measures")
+        else:
+            x_axis = "T_av"
+
+        if "figtext" not in kwargs:
+            kwargs["figtext"] = sample
         else:
             pass
 
-        if show is False:
-            plt.close()
-        elif show is True:
-            plt.show()
+        if "parameters" in kwargs:
+            parameters = dict()
+            parameters_list = kwargs["parameters"]
+            kwargs.pop("parameters")
+            parameters = []
+            for p in parameters_list:
+                if p in self.parameters:
+                    for m in self.measurements:
+                        params = dict()
+                        params[p] = m[p]
+                        parameters.append(params)
+                else:
+                    raise Exception("parameters must be in self.parameters")
         else:
-            pass
+            parameters = [dict() for i in self.measurements]
 
-        if return_fig is True:
-            return fig, ax
+        kwargs["parameters"] = parameters
+
+        if key != "Tp_Tm":
+
+            if "show" in kwargs:
+                show = kwargs["show"]
+                kwargs["show"] = None
+            else:
+                kwargs["show"] = None
+                show = True
+
+            for i in range(len(self.measurements)):
+
+                xdata, xkey = self.measurements[i][x_axis], x_axis
+                ydata, ykey = self.measurements[i][key], key
+                kwargs["parameters"] = parameters[i]
+
+                if i == 0:
+                    fig, ax = V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+                elif i < len(self.measurements)-1:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
+                else:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    kwargs["show"] = show
+                    V.Plot(xdata, ydata, xkey, ykey, *args, **kwargs)
         else:
+            if "show" in kwargs:
+                show = kwargs["show"]
+                kwargs["show"] = None
+            else:
+                kwargs["show"] = None
+                show = True
+
+            for i in range(len(self.measurements)):
+                xdata, xkey = self.measurements[i][x_axis], x_axis
+                ydata1, ykey1 = self.measurements[i]["Tp"], "Tp"
+                ydata2, ykey2 = self.measurements[i]["Tm"], "Tm"
+                kwargs["parameters"] = parameters[i]
+
+                if i == 0:
+                    kwargs["parameters"]["which"] = r"T$^{+}$"
+                    fig, ax = V.Plot(xdata, ydata1, xkey,
+                                     ykey1, *args, **kwargs)
+
+                    kwargs["parameters"]["which"] = r"T$^{-}$"
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    fig, ax = V.Plot(xdata, ydata2, xkey,
+                                     ykey2, *args, **kwargs)
+                elif i < len(self.measurements)-1:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    kwargs["parameters"]["which"] = r"T$^{+}$"
+                    V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
+
+                    kwargs["parameters"]["which"] = r"T$^{-}$"
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
+
+                else:
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    kwargs["parameters"]["which"] = r"T$^{+}$"
+                    V.Plot(xdata, ydata1, xkey, ykey1, *args, **kwargs)
+
+                    kwargs["show"] = show
+                    kwargs["parameters"]["which"] = r"T$^{-}$"
+                    kwargs["fig"], kwargs["ax"] = fig, ax
+                    V.Plot(xdata, ydata2, xkey, ykey2, *args, **kwargs)
+
+        if return_fig is False:
             return
+
+        else:
+            return fig, ax
 
     def Plot_all(self, *args, **kwargs):
         """
@@ -649,15 +537,18 @@ class Data_Set():
         except KeyError:
             filename = None
 
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
+
         for key in measures:
             figures.append(self.Plot(key, *args, **kwargs)[0])
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            for i in figures:
-                pp.savefig(i)
-            pp.close()
+            U.save_to_pdf(filename, figures, overwrite=overwrite)
         else:
             pass
 
@@ -679,7 +570,8 @@ class Data_Set():
                     "dTx/T", "dTy/dTx", "Resistance"]
         measures = [i for i in ref_meas if i in measures]
 
-        fig, ax = self.__create_grid(measures)
+        n = len(measures)
+        fig, ax = V.create_grid(n)
 
         try:
             kwargs.pop("show")
@@ -702,12 +594,18 @@ class Data_Set():
         except KeyError:
             filename = None
 
-        for i in range(len(measures)):
+        try:
+            overwrite = kwargs["overwrite"]
+            kwargs.pop("overwrite")
+        except KeyError:
+            overwrite = "ask"
+
+        for i in range(n):
             self.Plot(measures[i], *args, show=None,
                       fig=fig, ax=ax[i], **kwargs)
 
         if sample is not None:
-            plt.suptitle(sample, fontsize=22)
+            plt.suptitle(sample, y=0.95, fontsize=22)
         else:
             pass
 
@@ -715,9 +613,7 @@ class Data_Set():
 
         if filename is not None:
             filename = os.path.abspath(filename)
-            pp = PdfPages(filename)
-            pp.savefig(fig)
-            pp.close()
+            U.save_to_pdf(filename, fig, overwrite=overwrite)
         else:
             pass
 

@@ -18,7 +18,7 @@ axis_labels["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
 axis_labels["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
 axis_labels["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
 axis_labels["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
-axis_labels["kxy"] = r"$\kappa_{\rm xy}$ ( mW / K cm )"
+axis_labels["kxy"] = r"$\kappa_{\rm xy}$ ( W / K m )"
 axis_labels["kxy/kxx"] = r"$\kappa_{\rm xy}/\kappa_{\rm xx}$ ( % )"
 axis_labels["dTy/dTx"] = r"$\Delta T_{\rm y}/\Delta T_{\rm x}$ ( % )"
 axis_labels["Tp_Tm"] = axis_labels["T_av"]
@@ -70,13 +70,10 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     if "show" in kwargs:
         show = kwargs["show"]
         kwargs.pop("show")
-        if type(show) is bool:
+        if type(show) is bool or show is None:
             pass
         else:
-            if type(show) is None:
-                pass
-            else:
-                raise TypeError("show must be bool or None")
+            raise TypeError("show must be bool or None")
     else:
         show = True
 
@@ -86,6 +83,12 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     else:
         axis_fs = 16
 
+    if "figtext" in kwargs:
+        figtext = kwargs["figtext"]
+        kwargs.pop("figtext")
+    else:
+        figtext = None
+
     if "parameters" in kwargs:
         parameters = kwargs["parameters"]
         kwargs.pop("parameters")
@@ -93,8 +96,8 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
             labels = []
             for key in parameters:
                 if type(parameters[key]) is str:
-                    if key in axis_labels:
-                        labels.append(axis_labels[key] % (parameters[key]))
+                    if key in legend_labels:
+                        labels.append(legend_labels[key] % (parameters[key]))
                     else:
                         labels.append(parameters[key])
                 else:
@@ -119,6 +122,7 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         kwargs.pop("fig")
         kwargs.pop("ax")
         return_fig = False
+        figtext = None
     else:
         fig, ax = plt.subplots(figsize=(8, 4.5))
         return_fig = True
@@ -127,11 +131,13 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
     ax.plot(xdata, ydata, label=label, *args, **kwargs)
 
     if ydata.min()*ydata.max() < 0:
-        ax.axhline(0, "--k", lw=2)
-    else:
+        ax.axhline(0, ls="--", color="k", lw=2)
+    elif ydata.max()*ydata.min() > 0:
         if ydata.min() >= 0:
+            ax.autoscale(enable=True, axis="y")
             ax.set_ylim(0, ax.get_ylim()[1])
         else:
+            ax.autoscale(enable=True, axis="y")
             ax.set_ylim(ax.get_ylim()[0], 0)
 
     if xkey in ["T_av", "T0"]:
@@ -146,7 +152,13 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
                    direction="in", top=True, right=True)
 
     if label_size != 0:
-        ax.legend(label_font)
+        ax.legend(fontsize=label_font)
+    else:
+        pass
+
+    if figtext is not None and len(fig.axes) == 1:
+        plt.figtext(0.05, 0.01, figtext, fontsize=axis_fs,
+                    va="bottom", ha="left")
     else:
         pass
 
@@ -163,3 +175,35 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         pass
 
     return fig, ax
+
+
+def create_grid(n):
+    """
+    Used to create a grid of n suplots
+    """
+
+    if n % 2 == 0:
+        N = n//2
+        fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+        axes = ax.flatten().tolist()
+    else:
+        N = n//2+1
+        s = (N, 4)
+        fig, ax = plt.subplots(N, 2, figsize=(16, N*4.5))
+        axes = []
+        loc = (0, 0)
+        for i in range(n):
+
+            if i != 0:
+                if i != n-1:
+                    if int(loc[1]) == 0:
+                        loc = (loc[0], 2)
+                    elif int(loc[1]) == 2:
+                        loc = (loc[0]+1, 0)
+                else:
+                    loc = (N-1, 1)
+            else:
+                pass
+            axes.append(plt.subplot2grid(s, loc, colspan=2, fig=fig))
+
+    return fig, axes
