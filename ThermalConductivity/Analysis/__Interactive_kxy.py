@@ -58,65 +58,52 @@ class Conductivity():
         self.parameters = []
         self.measures = []
         self.raw_data = []
-        # Check for some specific kwargs
-        try:
-            self["force_kxy"] = kwargs["force_kxy"]
-            kwargs.pop("force_kxy")
-            if type(self["force_kxy"]) is bool:
-                pass
-            else:
-                raise TypeError("force_kxy must be True or False")
-        except KeyError:
-            self["force_kxy"] = False
-
-        try:
-            self["symmetrize"] = kwargs["symmetrize"]
-            kwargs.pop("symmetrize")
-            if type(self["symmetrize"]) is bool:
-                pass
-            else:
-                raise TypeError("symmetrize must be True or False")
-        except KeyError:
-            self["symmetrize"] = True
-
-        if sign in [1, -1]:
-            self["sign"] = sign
-        else:
-            raise ValueError("Sign must be 1 or -1")
-
-        if "gain" in kwargs:
-            gain = kwargs["gain"]
-            self["gain"] = gain
-        else:
-            gain = 1000
-            self["gain"] = gain
+        # Check for some specific kwargs and update kwargs
+        self["force_ky"], kwargs = self.__check_force_kxy(**kwargs)
+        self["symmetrize"], kwargs = self.__check_symmetrize(**kwargs)
+        self["sign"] = self.__check_sign(**kwargs)
+        self["gain"], kwargs = self.__check_gain(*kwargs)
 
         if filename is not None:
             filename = os.path.abspath(filename)
             self["filename"] = filename
+            self["filetype"] = self.__check_filetype(filename)
 
             # Find info
             self.__add_parameters(w, t, L)
 
-            # If symetrize is True
-            if self["H"] != "0.0" and self["symmetrize"] is True:
-                filename2 = U.get_symetric_file(filename)
-                raw_data = self.__Symmetrize(filename, filename2)
-            elif self["H"] != "0.0" and self["symmetrize"] is False:
-                if filename.find("--") != -1:
-                    self["H"] = "-"+self["H"]
+            # If the file contains raw data
+            if self["filetype"] == "raw":
+
+                # If symetrize is True
+                if self["H"] != "0.0" and self["symmetrize"] is True:
+                    filename2 = U.get_symetric_file(filename)
+                    raw_data = self.__Symmetrize(filename, filename2)
+                elif self["H"] != "0.0" and self["symmetrize"] is False:
+                    if filename.find("--") != -1:
+                        self["H"] = "-"+self["H"]
+                    else:
+                        pass
+
                 else:
-                    pass
+                    raw_data = U.read_file_raw(filename)
 
-            else:
-                raw_data = U.read_file_raw(filename)
+                for key, values in raw_data.items():
+                    self[key] = values
+                    self.raw_data.append(key)
 
-            for key, values in raw_data.items():
-                self[key] = values
-                self.raw_data.append(key)
+                self.__Analyze(self["gain"])
+                self.__add_measure()
 
-            self.__Analyze(gain)
-            self.__add_measure()
+            # If the file contains treated data 
+            elif self["filetype"] == "treated":
+                data = U.read_file_treated(filename)
+
+                for key, values in data.items():
+                    self[key] = values
+                    self.measures.append(key)
+                    self.__add_measure()
+
 
         # Remaining kwargs are set as parameters
         for key, value in kwargs.items():
@@ -124,6 +111,67 @@ class Conductivity():
             self.parameters.append(key)
 
         return
+
+    def __check_force_kxy(self, **kwargs):
+        try:
+            answer = kwargs["force_kxy"]
+            kwargs.pop("force_kxy")
+            if type(answer) is bool:
+                pass
+            else:
+                raise TypeError("force_kxy must be True or False")
+        except KeyError:
+            answer = False
+            return answer, kwargs
+
+    def __check_symmetrize(self, **kwargs):
+        try:
+            answer = kwargs["symmetrize"]
+            kwargs.pop("symmetrize")
+            if type(answer) is bool:
+                pass
+            else:
+                raise TypeError("symmetrize must be True or False")
+        except KeyError:
+            answer = True
+
+        return answer, kwargs
+
+    def __check_sign(self, **kwargs):
+        if sign in [1, -1]:
+            answer = sign
+        else:
+            raise ValueError("Sign must be 1 or -1")
+        return sign
+
+    def __check_gain(self, **kwargs):
+        if "gain" in kwargs:
+            answer = kwargs["gain"]
+            kwargs.pop("gain")
+        else:
+            answer = 1000
+
+        return answer, kwargs
+
+    def __check_filetype(self, filename):
+        filename = os.path.abspath(filename)
+        columns = U.read_header(filename)[-1].split("\t")
+
+        raw_data = 0
+        measures = 0
+        for key, values in self.__dict_raw.items():
+            for v in values:
+                if v in columns:
+                    raw_data += 1
+                else:
+                    measures += 1
+
+        if raw_data > measures:
+            filetype = "raw"
+        else:
+            filetype = "treated"
+
+        return filetype
 
     def __Symmetrize(self, filename, filename2):
         anti_sym = ["dTy_0", "dTy_Q"]
