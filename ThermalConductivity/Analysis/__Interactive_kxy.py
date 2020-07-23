@@ -62,7 +62,7 @@ class Conductivity():
         self["force_ky"], kwargs = self.__check_force_kxy(**kwargs)
         self["symmetrize"], kwargs = self.__check_symmetrize(**kwargs)
         self["sign"] = self.__check_sign(sign)
-        self["gain"], kwargs = self.__check_gain(*kwargs)
+        self["gain"], kwargs = self.__check_gain(**kwargs)
 
         if filename is not None:
             filename = os.path.abspath(filename)
