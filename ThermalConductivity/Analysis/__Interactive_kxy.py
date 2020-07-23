@@ -59,7 +59,7 @@ class Conductivity():
         self.measures = []
         self.raw_data = []
         # Check for some specific kwargs and update kwargs
-        self["force_ky"], kwargs = self.__check_force_kxy(**kwargs)
+        self["force_kxy"], kwargs = self.__check_force_kxy(**kwargs)
         self["symmetrize"], kwargs = self.__check_symmetrize(**kwargs)
         self["sign"] = self.__check_sign(sign)
         self["gain"], kwargs = self.__check_gain(**kwargs)
