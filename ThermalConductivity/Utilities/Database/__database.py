@@ -50,3 +50,14 @@ parameters_dict["L"] = ["L"]
 parameters_dict["mount"] = ["mount"]
 parameters_dict["sample"] = ["Sample", "sample"]
 parameters_dict["date"] = ["Date", "date"]
+
+# Log file measurements
+log_data_dict = dict()
+log_data_dict["T0"] = ["T0(K)"]
+log_data_dict["R0"] = ["R0(Ohm)"]
+log_data_dict["I"] = ["I(A)"]
+log_data_dict["dTy"] = ["dTy(V)"]
+log_data_dict["dTabs"] = ["Tabs(V)"]
+log_data_dict["dTx"] = ["dTx(V)"]
+log_data_dict["Stabilized"] = ["Stabilized"]
+log_data_dict["Time"] = ["Time(s)"]

@@ -351,7 +351,6 @@ def find_sample(filename, header=None):
             sample = os.path.split(filename)[1]
             sample = os.path.splitext(sample)[0]
 
-
             sample = sample.replace(date, "")
             sample = sample.replace(H+"T", "")
             sample = sample.replace(mount, "")
@@ -386,7 +385,8 @@ def find_probe(filename, header):
 
     # Defaults to tallahassee changes only if VTI detected
     probe = "Tallahassee"
-    for i in D.raw_data_dict["dTx_0"]:
+    vti = D.raw_data_dict["dTx_0"]+D.log_data_dict["Tabs"]
+    for i in vti:
         if i in header:
             probe = "VTI"
         else:
@@ -468,6 +468,33 @@ def read_file_treated(filename):
                 pass
 
     return measurements
+
+
+def read_file_log(filename):
+    """
+    Reads the file and the file header and returns the data it found in a
+    dictionary
+
+    Parameters:
+    ----------------------------------------------------------------------------
+    filename:   string
+                The name and path of the file to be read
+    """
+
+    filename = os.path.abspath(filename)
+    header = list(filter(None, read_header(filename)[-1].strip().split("\t")))
+    data = np.genfromtxt(filename, delimiter="\t").T
+
+    log_data = dict()
+
+    for key, values in D.log_data_dict.items():
+        for i in range(len(header)):
+            if header[i] in values:
+                log_data[key] = data[i]
+            else:
+                pass
+
+    return log_data
 
 
 def read_parameters(header):

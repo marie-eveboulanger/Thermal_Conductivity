@@ -9,6 +9,9 @@ import numpy as np
 # Axis labels
 axis_labels = dict()
 axis_labels["T_av"] = r"T ( K )"
+axis_labels["I"] = r"I ( A )"
+axis_labels["Time"] = r"Time ( s )"
+axis_labels["R0"] = r"R_0 ( $\Omega$ )"
 axis_labels["T0"] = r"$T_0$ ( K )"
 axis_labels["Tp"] = axis_labels["T_av"]
 axis_labels["Tm"] = axis_labels["T_av"]
