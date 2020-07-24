@@ -57,6 +57,15 @@ class Log():
 
         return
 
+    def Get_stabilized(self):
+        """
+        Returns a Log instance containing only points where the measure is
+        stable
+        """
+        index = np.where(self["Stabilized"] == 1)
+        new_log = self[index]
+        return new_log
+
     def Plot(self, key, *args, **kwargs):
         """
         Used as a layer between the object and Visualization.Plot
