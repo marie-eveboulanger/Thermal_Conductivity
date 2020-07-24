@@ -139,9 +139,6 @@ class Log():
         else:
             L = Log()
 
-            for i in self.raw_data:
-                setattr(L, "__"+i, getattr(self, "__"+i)[key])
-
             for i in self.measures:
                 if i != "Tp_Tm":
                     setattr(L, "__"+i, getattr(self, "__"+i)[key])
