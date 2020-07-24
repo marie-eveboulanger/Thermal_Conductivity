@@ -45,7 +45,7 @@ class Log():
         self["mount"] = U.find_mount(filename)
         self["probe"] = U.find_probe(filename, header)
         self["sample"] = U.find_sample(filename, header)
-        self.parameters.append(["H", "date", "mount", "probe", "sample"])
+        self.parameters + ["H", "date", "mount", "probe", "sample"]
 
         # Find the measurements
         log_data = U.read_file_log(filename)
