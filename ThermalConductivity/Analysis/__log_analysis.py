@@ -131,3 +131,42 @@ class Log():
             return
         else:
             return fig, ax
+
+    def __getitem__(self, key):
+        if type(key) is str:
+            return getattr(self, "__"+key)
+        else:
+            C = Conductivity()
+
+            for i in self.raw_data:
+                setattr(C, "__"+i, getattr(self, "__"+i)[key])
+
+            for i in self.measures:
+                if i != "Tp_Tm":
+                    setattr(C, "__"+i, getattr(self, "__"+i)[key])
+                else:
+                    setattr(C, "__"+i, None)
+            for i in self.parameters:
+                setattr(C, "__"+i, getattr(self, "__"+i))
+
+            misc = self.__dict__.keys()
+            for k in misc:
+                if hasattr(C, k) is True:
+                    pass
+                else:
+                    setattr(C, k, getattr(self, k))
+
+            C.measures = self.measures
+            C.parameters = self.parameters
+            return C
+
+    def __setitem__(self, key, value):
+        if type(key) is str:
+            setattr(self, "__"+key, value)
+        else:
+            pass
+        return
+
+    def __delitem__(self, key):
+        delattr(self, "__"+key)
+        return
