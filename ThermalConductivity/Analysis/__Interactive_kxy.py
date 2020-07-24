@@ -494,9 +494,10 @@ class Conductivity():
         fig, ax = V.create_grid(n)
 
         try:
+            show = show
             kwargs.pop("show")
         except KeyError:
-            pass
+            show = None
 
         try:
             filename = kwargs["filename"]
@@ -524,6 +525,13 @@ class Conductivity():
         if filename is not None:
             filename = os.path.abspath(filename)
             U.save_to_pdf(filename, fig, overwrite=overwrite)
+        else:
+            pass
+
+        if show is True:
+            plt.show()
+        elif show is False:
+            plt.close()
         else:
             pass
 
