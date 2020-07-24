@@ -60,7 +60,7 @@ class Conductivity():
         self.measures = []
         self.raw_data = []
         # Check for some specific kwargs and update kwargs
-        self["force_kxy"], kwargs = self.__check_force_kxy(**kwargs)
+        self["force_kxy"], kwargs = self.__check_force_kxy(kwargs)
         self["symmetrize"], kwargs = self.__check_symmetrize(**kwargs)
         self["sign"] = self.__check_sign(sign)
         self["gain"], kwargs = self.__check_gain(**kwargs)
@@ -114,7 +114,7 @@ class Conductivity():
 
         return
 
-    def __check_force_kxy(self, **kwargs):
+    def __check_force_kxy(self, kwargs):
         try:
             answer = kwargs["force_kxy"]
             kwargs.pop("force_kxy")
