@@ -385,7 +385,7 @@ def find_probe(filename, header):
 
     # Defaults to tallahassee changes only if VTI detected
     probe = "Tallahassee"
-    vti = D.raw_data_dict["dTx_0"]+D.log_data_dict["Tabs"]
+    vti = D.raw_data_dict["dTx_0"]+D.log_data_dict["dTx"]
     for i in vti:
         if i in header:
             probe = "VTI"
