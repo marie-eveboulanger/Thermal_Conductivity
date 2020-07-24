@@ -43,7 +43,7 @@ class Log():
         self["H"] = U.find_H(filename)
         self["date"] = U.find_date(filename)
         self["mount"] = U.find_mount(filename)
-        self["probe"] = U.find_probe(filename)
+        self["probe"] = U.find_probe(filename, header)
         self["sample"] = U.find_sample(filename, header)
         self.parameters.append(["H", "date", "mount", "probe", "sample"])
 
