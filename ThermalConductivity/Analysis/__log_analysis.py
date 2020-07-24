@@ -25,7 +25,7 @@ class Log():
     This class is meant to read data from a log file for debugging
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename=None):
 
         # Importing dictionaries
         self["dict_measures"] = D.log_data_dict
@@ -35,24 +35,25 @@ class Log():
         self.measures = []
         self.parameters = []
 
-        # Read the file
-        filename = os.path.abspath(filename)
-        header = U.read_header(filename)
+        if filename is not None:
+            # Read the file
+            filename = os.path.abspath(filename)
+            header = U.read_header(filename)
 
-        # Find the parameters
-        self["H"] = U.find_H(filename)
-        self["date"] = U.find_date(filename)
-        self["mount"] = U.find_mount(filename)
-        self["probe"] = U.find_probe(filename, header)
-        self["sample"] = U.find_sample(filename, header)
-        self.parameters += ["H", "date", "mount", "probe", "sample"]
+            # Find the parameters
+            self["H"] = U.find_H(filename)
+            self["date"] = U.find_date(filename)
+            self["mount"] = U.find_mount(filename)
+            self["probe"] = U.find_probe(filename, header)
+            self["sample"] = U.find_sample(filename, header)
+            self.parameters += ["H", "date", "mount", "probe", "sample"]
 
-        # Find the measurements
-        log_data = U.read_file_log(filename)
+            # Find the measurements
+            log_data = U.read_file_log(filename)
 
-        for key, value in log_data.items():
-            self[key] = value
-            self.measures.append(key)
+            for key, value in log_data.items():
+                self[key] = value
+                self.measures.append(key)
 
         return
 
@@ -136,29 +137,29 @@ class Log():
         if type(key) is str:
             return getattr(self, "__"+key)
         else:
-            C = Conductivity()
+            L = Log()
 
             for i in self.raw_data:
-                setattr(C, "__"+i, getattr(self, "__"+i)[key])
+                setattr(L, "__"+i, getattr(self, "__"+i)[key])
 
             for i in self.measures:
                 if i != "Tp_Tm":
-                    setattr(C, "__"+i, getattr(self, "__"+i)[key])
+                    setattr(L, "__"+i, getattr(self, "__"+i)[key])
                 else:
-                    setattr(C, "__"+i, None)
+                    setattr(L, "__"+i, None)
             for i in self.parameters:
-                setattr(C, "__"+i, getattr(self, "__"+i))
+                setattr(L, "__"+i, getattr(self, "__"+i))
 
             misc = self.__dict__.keys()
             for k in misc:
-                if hasattr(C, k) is True:
+                if hasattr(L, k) is True:
                     pass
                 else:
-                    setattr(C, k, getattr(self, k))
+                    setattr(L, k, getattr(self, k))
 
-            C.measures = self.measures
-            C.parameters = self.parameters
-            return C
+            L.measures = self.measures
+            L.parameters = self.parameters
+            return L
 
     def __setitem__(self, key, value):
         if type(key) is str:
