@@ -167,7 +167,8 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         pass
 
     if len(fig.axes) == 1:
-        fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
+        fig.tight_layout()
+        #fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
     else:
         pass
 
