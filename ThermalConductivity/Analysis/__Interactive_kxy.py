@@ -22,6 +22,7 @@ from ThermalConductivity import Utilities as U
 from ThermalConductivity.Utilities import Database as D
 from ThermalConductivity.Thermometry import seebeck_thermometry
 from ThermalConductivity import Visualization as V
+from ThermalConductivity import Comparison as Comp
 
 ################################################################################
 #                          ____ _        _    ____ ____                        #
@@ -537,6 +538,20 @@ class Conductivity():
             pass
 
         return fig, ax
+
+    def Convert_to_Measurement(self):
+        """
+        Returns a Comparison.Measurement object
+        """
+
+        measurement = Comp.Measurement()
+        for m in self.measures:
+            measurement[m] = self[m]
+        for p in self.parameters:
+            measurement[p] = self[p]
+
+        return measurement
+
 
     def Write_out(self, filename=None, overwrite="ask"):
         """
