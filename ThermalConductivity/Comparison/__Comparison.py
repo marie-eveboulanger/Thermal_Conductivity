@@ -567,7 +567,7 @@ class Data_Set():
             pass
         measures = [i for i in self.measures if i not in remove]
         ref_meas = ["kxx", "kxx/T", "kxy", "kxy/T", "dTx",
-                    "dTx/T", "dTy/dTx", "Resistance"]
+                    "dTx/T", "dTy", "dTy/dTx", "Resistance"]
         measures = [i for i in ref_meas if i in measures]
 
         n = len(measures)
