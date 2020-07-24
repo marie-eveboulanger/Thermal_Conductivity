@@ -494,7 +494,7 @@ class Conductivity():
         fig, ax = V.create_grid(n)
 
         try:
-            show = show
+            show = kwargs["show"]
             kwargs.pop("show")
         except KeyError:
             show = None
