@@ -550,6 +550,9 @@ class Conductivity():
         for p in self.parameters:
             measurement[p] = self[p]
 
+        measurement.measures = self.measures
+        measurement.parameters = self.parameters
+
         return measurement
 
 
