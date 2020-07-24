@@ -50,7 +50,7 @@ class Log():
         # Find the measurements
         log_data = U.read_file_log(filename)
 
-        for key, value in log_data:
+        for key, value in log_data.items():
             self[key] = value
             self.measures.append(key)
 
