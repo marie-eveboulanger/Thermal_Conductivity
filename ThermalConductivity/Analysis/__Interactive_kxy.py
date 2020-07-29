@@ -257,6 +257,9 @@ class Conductivity():
             I, physicial_properties["dTx"], self["w"], self["t"], self["L"])
         self.store_as(kxx, "kxx")
 
+    def __has_non_zero_magnetic_field(self):
+        return self["H"] != "0.0"
+
     def __compute_and_store_dTy_and_kxy(self, gain):
         # Compute dty
         reference_temperature = (self["T0"] + self["T_av"]) / 2
@@ -270,8 +273,6 @@ class Conductivity():
             self["kxx"], self["dTx"], dTy, self["w"], self["L"])
         self.store_as(kxy, "kxy")
 
-    def __has_non_zero_magnetic_field(self):
-        return self["H"] != "0.0"
 
     def __add_parameters(self, width, thickness, length):
 
