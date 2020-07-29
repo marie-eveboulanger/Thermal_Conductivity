@@ -205,7 +205,16 @@ class Conductivity():
 
     def __tlh_analyse(self, gain):
         self.__remove_uncalibrated_points()
+        self.__compute_and_store_tlh_physical_properties(gain)
+        if self.__has_non_zero_magnetic_field() or self["force_kxy"]:
+            self.__compute_and_store_dTy_and_kxy(gain)
 
+    def __remove_uncalibrated_points(self):
+        index = np.where(self["R+_Q"] < self["R+_0"][-1])
+        for i in self.raw_data:
+            self[i] = np.delete(self[i], index)
+
+    def __compute_and_store_tlh_physical_properties(self, gain):
         # Get I and T0
         I = self["I"]
         T0 = self["T0"]
@@ -226,60 +235,43 @@ class Conductivity():
         self.store_as(Tp, "Tp")
         self.store_as(Tm, "Tm")
 
-        # Compute the transverse stuff
-        if self["H"] != "0.0" or self["force_kxy"] is True:
-            # Compute dTy
-            Tr = T0+T_av/2  # Reference tempereature for the thermocouple
-            dTy = F.compute_thermocouple(
-                self["dTy_0"], self["dTy_Q"], Tr, gain)
-            dTy *= self["sign"]  # Apply the sign
-
-            # Compute kxy
-            kxy = F.compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
-
-            # Store in self
-            self.store_as(kxy, "kxy")
-            self.store_as(dTy, "dTy")
-
-    def __remove_uncalibrated_points(self):
-        index = np.where(self["R+_Q"] < self["R+_0"][-1])
-        for i in self.raw_data:
-            self[i] = np.delete(self[i], index)
-
     def __vti_analyse(self, gain):
-        # Importing data
+        self.__compute_and_store_vti_physical_properties(gain)
+        if self.__has_non_zero_magnetic_field() or self["force_kxy"]:
+            self.__compute_and_store_dTy_and_kxy(gain)
+
+    def __compute_and_store_vti_physical_properties(self, gain):
         dTabs_0, dTabs_Q = self["dTabs_0"], self["dTabs_Q"]
         dTx_0, dTx_Q = self["dTx_0"], self["dTx_Q"]
         T0 = self["T0"]
         I = self["I"]
 
-        # Computing everything
-        result = F.vti_thermocouple_calibration_loop(
+        # Compute physical properties
+        physicial_properties = F.vti_thermocouple_calibration_loop(
             dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0, gain)
+        for key, value in physicial_properties.items():
+            self.store_as(value, key)
+
+        # Compute kxx
         kxx = F.compute_kxx(
-            I, result["dTx"], self["w"], self["t"], self["L"])
+            I, physicial_properties["dTx"], self["w"], self["t"], self["L"])
+        self.store_as(kxx, "kxx")
 
-        # Storing in self
-        self["kxx"] = kxx
-        for key, value in result.items():
-            self[key] = value
-        self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+    def __compute_and_store_dTy_and_kxy(self, gain):
+        # Compute dty
+        reference_temperature = (self["T0"] + self["T_av"]) / 2
+        dTy = F.compute_thermocouple(
+            self["dTy_0"], self["dTy_Q"], reference_temperature, gain)
+        dTy *= self["sign"]
+        self.store_as(dTy, "dTy")
 
-        if self["H"] != "0.0" or self["force_kxy"] is True:
-            # Compute dTy
-            Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
-            dTy = F.compute_thermocouple(
-                self["dTy_0"], self["dTy_Q"], Tr, gain)
-            dTy *= self["sign"]  # Apply the sign
+        # Compute kxy
+        kxy = F.compute_kxy(
+            self["kxx"], self["dTx"], dTy, self["w"], self["L"])
+        self.store_as(kxy, "kxy")
 
-            # Compute kxy
-            kxy = F.compute_kxy(
-                kxx, self["dTx"], dTy, self["w"], self["L"])
-
-            # Store in self
-            self["dTy"] = dTy
-            self["kxy"] = kxy
-            self.measures += ["dTy", "kxy"]
+    def __has_non_zero_magnetic_field(self):
+        return self["H"] != "0.0"
 
     def __add_parameters(self, width, thickness, length):
 
