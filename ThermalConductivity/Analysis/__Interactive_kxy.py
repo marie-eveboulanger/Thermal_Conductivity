@@ -229,11 +229,11 @@ class Conductivity():
         kxx = F.compute_kxx(I, dTx, self["w"], self["t"], self["L"])
 
         # Store values in self
-        self.store_as(kxx, "kxx")
-        self.store_as(dTx, "dTx")
-        self.store_as(T_av, "T_av")
-        self.store_as(Tp, "Tp")
-        self.store_as(Tm, "Tm")
+        self.store_as_measure(kxx, "kxx")
+        self.store_as_measure(dTx, "dTx")
+        self.store_as_measure(T_av, "T_av")
+        self.store_as_measure(Tp, "Tp")
+        self.store_as_measure(Tm, "Tm")
 
     def __vti_analyse(self, gain):
         self.__compute_and_store_vti_physical_properties(gain)
@@ -250,12 +250,12 @@ class Conductivity():
         physicial_properties = F.vti_thermocouple_calibration_loop(
             dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0, gain)
         for key, value in physicial_properties.items():
-            self.store_as(value, key)
+            self.store_as_measure(value, key)
 
         # Compute kxx
         kxx = F.compute_kxx(
             I, physicial_properties["dTx"], self["w"], self["t"], self["L"])
-        self.store_as(kxx, "kxx")
+        self.store_as_measure(kxx, "kxx")
 
     def __has_non_zero_magnetic_field(self):
         return self["H"] != "0.0"
@@ -266,12 +266,12 @@ class Conductivity():
         dTy = F.compute_thermocouple(
             self["dTy_0"], self["dTy_Q"], reference_temperature, gain)
         dTy *= self["sign"]
-        self.store_as(dTy, "dTy")
+        self.store_as_measure(dTy, "dTy")
 
         # Compute kxy
         kxy = F.compute_kxy(
             self["kxx"], self["dTx"], dTy, self["w"], self["L"])
-        self.store_as(kxy, "kxy")
+        self.store_as_measure(kxy, "kxy")
 
 
     def __add_parameters(self, width, thickness, length):
@@ -337,7 +337,7 @@ class Conductivity():
 
         return
 
-    def store_as(self, variable, key):
+    def store_as_measure(self, variable, key):
         """
         Insert a new variable in the dataset with the given label.
         The variable will be accessible by calling self[key].
