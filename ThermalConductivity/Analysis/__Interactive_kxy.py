@@ -204,12 +204,8 @@ class Conductivity():
             self.__vti_analyse(gain)
 
     def __tlh_analyse(self, gain):
-        # Cut the uncalibrated points
-        index = np.where(self["R+_Q"] < self["R+_0"][-1])
-        for i in self.raw_data:
-            self[i] = np.delete(self[i], index)
+        self.__remove_uncalibrated_points()
 
-        # Compute useful stuff
         # Get I and T0
         I = self["I"]
         T0 = self["T0"]
@@ -224,12 +220,11 @@ class Conductivity():
         kxx = F.compute_kxx(I, dTx, self["w"], self["t"], self["L"])
 
         # Store values in self
-        self["kxx"] = kxx
-        self["dTx"] = dTx
-        self["T_av"] = T_av
-        self["Tp"] = Tp
-        self["Tm"] = Tm
-        self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+        self.store_as(kxx, "kxx")
+        self.store_as(dTx, "dTx")
+        self.store_as(T_av, "T_av")
+        self.store_as(Tp, "Tp")
+        self.store_as(Tm, "Tm")
 
         # Compute the transverse stuff
         if self["H"] != "0.0" or self["force_kxy"] is True:
@@ -243,9 +238,13 @@ class Conductivity():
             kxy = F.compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
 
             # Store in self
-            self["dTy"] = dTy
-            self["kxy"] = kxy
-            self.measures += ["dTy", "kxy"]
+            self.store_as(kxy, "kxy")
+            self.store_as(dTy, "dTy")
+
+    def __remove_uncalibrated_points(self):
+        index = np.where(self["R+_Q"] < self["R+_0"][-1])
+        for i in self.raw_data:
+            self[i] = np.delete(self[i], index)
 
     def __vti_analyse(self, gain):
         # Importing data
@@ -344,6 +343,23 @@ class Conductivity():
             self["Tp_Tm"] = None
 
         return
+
+    def store_as(self, variable, key):
+        """
+        Insert a new variable in the dataset with the given label.
+        The variable will be accessible by calling self[key].
+
+        Parameters:
+        ------------------------------------------------------------------------
+        variable:   any
+                    The variable to store
+        key:        string
+                    The key to access the variable.
+        """
+        if type(key) != str:
+            raise ValueError("key must be a string")
+        self[key] = variable
+        self.measures.append(key)
 
     def Plot(self, key, *args, **kwargs):
         """
