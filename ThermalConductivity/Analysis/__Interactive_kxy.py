@@ -32,7 +32,6 @@ from ThermalConductivity import Comparison as Comp
 #                         \____|_____/_/   \_\____/____/                       #
 ################################################################################
 
-
 class Conductivity():
     """
     This is the main class of the program. It contains all the
@@ -105,7 +104,6 @@ class Conductivity():
                     self[key] = values
                     self.measures.append(key)
                     self.__add_measure()
-
 
         # Remaining kwargs are set as parameters
         for key, value in kwargs.items():
@@ -200,89 +198,89 @@ class Conductivity():
         return sym_data
 
     def __Analyze(self, gain):
-        # Probe Tallahasse
         if self["probe"] == "Tallahasse":
-            # Cut the uncalibrated points
-            index = np.where(self["R+_Q"] < self["R+_0"][-1])
-            for i in self.raw_data:
-                self[i] = np.delete(self[i], index)
-
-            # Compute useful stuff
-            # Get I and T0
-            I = self["I"]
-            T0 = self["T0"]
-
-            # Compute T+ and T-
-            Tp = F.tallahassee_temp(self["R+_0"], self["R+_Q"], T0)
-            Tm = F.tallahassee_temp(self["R-_0"], self["R-_Q"], T0)
-
-            # Compute T_av dTx and kxx
-            T_av = 0.5*(Tp+Tm)
-            dTx = (Tp-Tm)
-            kxx = F.compute_kxx(I, dTx, self["w"], self["t"], self["L"])
-
-            # Store values in self
-            self["kxx"] = kxx
-            self["dTx"] = dTx
-            self["T_av"] = T_av
-            self["Tp"] = Tp
-            self["Tm"] = Tm
-            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
-
-            # Compute the transverse stuff
-            if self["H"] != "0.0" or self["force_kxy"] is True:
-                # Compute dTy
-                Tr = T0+T_av/2  # Reference tempereature for the thermocouple
-                dTy = F.compute_thermocouple(
-                    self["dTy_0"], self["dTy_Q"], Tr, gain)
-                dTy *= self["sign"]  # Apply the sign
-
-                # Compute kxy
-                kxy = F.compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
-
-                # Store in self
-                self["dTy"] = dTy
-                self["kxy"] = kxy
-                self.measures += ["dTy", "kxy"]
-
-        # VTI
+            self.__tlh_analyse(gain)
         elif self["probe"] == "VTI":
+            self.__vti_analyse(gain)
 
-            # Importing data
-            dTabs_0, dTabs_Q = self["dTabs_0"], self["dTabs_Q"]
-            dTx_0, dTx_Q = self["dTx_0"], self["dTx_Q"]
-            T0 = self["T0"]
-            I = self["I"]
+    def __tlh_analyse(self, gain):
+        # Cut the uncalibrated points
+        index = np.where(self["R+_Q"] < self["R+_0"][-1])
+        for i in self.raw_data:
+            self[i] = np.delete(self[i], index)
 
-            # Computing everything
-            result = F.vti_thermocouple_calibration_loop(
-                dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0, gain)
-            kxx = F.compute_kxx(
-                I, result["dTx"], self["w"], self["t"], self["L"])
+        # Compute useful stuff
+        # Get I and T0
+        I = self["I"]
+        T0 = self["T0"]
 
-            # Storing in self
-            self["kxx"] = kxx
-            for key, value in result.items():
-                self[key] = value
-            self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+        # Compute T+ and T-
+        Tp = F.tallahassee_temp(self["R+_0"], self["R+_Q"], T0)
+        Tm = F.tallahassee_temp(self["R-_0"], self["R-_Q"], T0)
 
-            if self["H"] != "0.0" or self["force_kxy"] is True:
-                # Compute dTy
-                Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
-                dTy = F.compute_thermocouple(
-                    self["dTy_0"], self["dTy_Q"], Tr, gain)
-                dTy *= self["sign"]  # Apply the sign
+        # Compute T_av dTx and kxx
+        T_av = 0.5*(Tp+Tm)
+        dTx = (Tp-Tm)
+        kxx = F.compute_kxx(I, dTx, self["w"], self["t"], self["L"])
 
-                # Compute kxy
-                kxy = F.compute_kxy(
-                    kxx, self["dTx"], dTy, self["w"], self["L"])
+        # Store values in self
+        self["kxx"] = kxx
+        self["dTx"] = dTx
+        self["T_av"] = T_av
+        self["Tp"] = Tp
+        self["Tm"] = Tm
+        self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
 
-                # Store in self
-                self["dTy"] = dTy
-                self["kxy"] = kxy
-                self.measures += ["dTy", "kxy"]
+        # Compute the transverse stuff
+        if self["H"] != "0.0" or self["force_kxy"] is True:
+            # Compute dTy
+            Tr = T0+T_av/2  # Reference tempereature for the thermocouple
+            dTy = F.compute_thermocouple(
+                self["dTy_0"], self["dTy_Q"], Tr, gain)
+            dTy *= self["sign"]  # Apply the sign
 
-        return
+            # Compute kxy
+            kxy = F.compute_kxy(kxx, dTx, dTy, self["w"], self["L"])
+
+            # Store in self
+            self["dTy"] = dTy
+            self["kxy"] = kxy
+            self.measures += ["dTy", "kxy"]
+
+    def __vti_analyse(self, gain):
+        # Importing data
+        dTabs_0, dTabs_Q = self["dTabs_0"], self["dTabs_Q"]
+        dTx_0, dTx_Q = self["dTx_0"], self["dTx_Q"]
+        T0 = self["T0"]
+        I = self["I"]
+
+        # Computing everything
+        result = F.vti_thermocouple_calibration_loop(
+            dTabs_0, dTabs_Q, dTx_0, dTx_Q, T0, gain)
+        kxx = F.compute_kxx(
+            I, result["dTx"], self["w"], self["t"], self["L"])
+
+        # Storing in self
+        self["kxx"] = kxx
+        for key, value in result.items():
+            self[key] = value
+        self.measures += ["T_av", "T0", "Tp", "Tm", "dTx", "kxx"]
+
+        if self["H"] != "0.0" or self["force_kxy"] is True:
+            # Compute dTy
+            Tr = (T0+self["T_av"])/2  # Reference temp for the thermocouple
+            dTy = F.compute_thermocouple(
+                self["dTy_0"], self["dTy_Q"], Tr, gain)
+            dTy *= self["sign"]  # Apply the sign
+
+            # Compute kxy
+            kxy = F.compute_kxy(
+                kxx, self["dTx"], dTy, self["w"], self["L"])
+
+            # Store in self
+            self["dTy"] = dTy
+            self["kxy"] = kxy
+            self.measures += ["dTy", "kxy"]
 
     def __add_parameters(self, width, thickness, length):
 
