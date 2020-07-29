@@ -9,12 +9,16 @@ import numpy as np
 # Axis labels
 axis_labels = dict()
 axis_labels["T_av"] = r"T ( K )"
+axis_labels["I"] = r"I ( A )"
+axis_labels["Time"] = r"Time ( s )"
+axis_labels["R0"] = r"$R_0$ ( $\Omega$ )"
 axis_labels["T0"] = r"$T_0$ ( K )"
 axis_labels["Tp"] = axis_labels["T_av"]
 axis_labels["Tm"] = axis_labels["T_av"]
 axis_labels["kxx"] = r"$\kappa_{\rm xx}$ ( W / K m )"
 axis_labels["dTx"] = r"$\Delta T_{\rm x}$ ( K )"
 axis_labels["dTy"] = r"$\Delta T_{\rm y}$ ( K )"
+axis_labels["dTabs"] = r"$\Delta T_{\rm abs}$ ( K )"
 axis_labels["kxx/T"] = r"$\kappa_{\rm xx}$/T ( W / K$^2$ m )"
 axis_labels["dTx/T"] = r"$\Delta T_{\rm x}$/T ( % )"
 axis_labels["Resistance"] = r"(T-T$_0$)/$\Delta T_{\rm x}$"
@@ -163,7 +167,8 @@ def Plot(xdata, ydata, xkey, ykey, *args, **kwargs):
         pass
 
     if len(fig.axes) == 1:
-        fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
+        fig.tight_layout()
+        #fig.tight_layout(rect=[0.01, 0.01, 1, 0.95])
     else:
         pass
 

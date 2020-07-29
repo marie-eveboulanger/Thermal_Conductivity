@@ -567,16 +567,17 @@ class Data_Set():
             pass
         measures = [i for i in self.measures if i not in remove]
         ref_meas = ["kxx", "kxx/T", "kxy", "kxy/T", "dTx",
-                    "dTx/T", "dTy/dTx", "Resistance"]
+                    "dTx/T", "dTy", "dTy/dTx", "Resistance"]
         measures = [i for i in ref_meas if i in measures]
 
         n = len(measures)
         fig, ax = V.create_grid(n)
 
         try:
+            show = kwargs["show"]
             kwargs.pop("show")
         except KeyError:
-            pass
+            show = True
 
         # Tries to find sample name
         if "sample" in self.parameters:
@@ -614,6 +615,13 @@ class Data_Set():
         if filename is not None:
             filename = os.path.abspath(filename)
             U.save_to_pdf(filename, fig, overwrite=overwrite)
+        else:
+            pass
+
+        if show is True:
+            plt.show()
+        elif show is False:
+            plt.close()
         else:
             pass
 
